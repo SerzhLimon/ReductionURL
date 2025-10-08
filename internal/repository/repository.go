@@ -22,7 +22,7 @@ func (m *MemStorage) Get(hash string) (string, error) {
 	defer m.mu.RUnlock()
 
 	url, exist := m.s[hash]
-	if exist {
+	if !exist {
 		return "", fmt.Errorf("%s not found", hash)
 	}
 	return url, nil
