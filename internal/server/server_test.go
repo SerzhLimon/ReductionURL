@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	s "github.com/SerzhLimon/ReductionURL/internal/server"
@@ -52,7 +53,7 @@ func TestServerGetURL(t *testing.T) {
 			method: http.MethodGet,
 			path:   "/42b3e75f92145d25",
 
-			ucIsOn: true,
+			ucIsOn:    true,
 			mockHash:  "42b3e75f92145d25",
 			mockURL:   "https://practicum.yandex.ru/",
 			mockError: nil,
@@ -72,7 +73,7 @@ func TestServerGetURL(t *testing.T) {
 			method: http.MethodGet,
 			path:   "/qweasdzxc",
 
-			ucIsOn: true,
+			ucIsOn:    true,
 			mockHash:  "qweasdzxc",
 			mockURL:   "",
 			mockError: fmt.Errorf("not found"),
@@ -99,6 +100,89 @@ func TestServerGetURL(t *testing.T) {
 			if tt.expectedLocation != "" {
 				assert.Equal(t, tt.expectedLocation, res.Header().Get("Location"))
 			}
+			if tt.ucIsOn {
+				mockUC.AssertExpectations(t)
+			}
+		})
+	}
+}
+
+func TestServerSetURL(t *testing.T) {
+	tests := []struct {
+		name   string
+		method string
+		url    string
+		contentType string
+
+		ucIsOn    bool
+		mockURL   string
+		mockHash  string
+		mockError error
+
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:   "successful post",
+			method: http.MethodPost,
+			url:    "https://practicum.yandex.ru/",
+			contentType: "text/plain",
+
+			ucIsOn:    true,
+			mockURL:   "https://practicum.yandex.ru/",
+			mockHash:  "42b3e75f92145d25",
+			mockError: nil,
+
+			expectedStatus: http.StatusCreated,
+			expectedBody:   "42b3e75f92145d25",
+		},
+		{
+			name:   "bad content type",
+			method: http.MethodPost,
+			url:    "https://practicum.yandex.ru/",
+			contentType: "application/json",
+
+			ucIsOn:    false,
+			mockURL:   "https://practicum.yandex.ru/",
+			mockHash:  "42b3e75f92145d25",
+			mockError: nil,
+
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "Content-Type must be text/plain\n",
+		},
+		{
+			name:   "invalid method",
+			method: http.MethodTrace,
+			url:    "https://practicum.yandex.ru/",
+			contentType: "text/plain",
+
+			ucIsOn:    false,
+			mockURL:   "https://practicum.yandex.ru/",
+			mockHash:  "42b3e75f92145d25",
+			mockError: nil,
+
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "method must be POST\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := newWrapServer()
+
+			mockUC := s.Uc.(*MockUseCase)
+			if tt.ucIsOn {
+				mockUC.On("SetURL", tt.mockURL).Return(tt.mockHash, tt.mockError)
+			}
+
+			req := httptest.NewRequest(tt.method, "/", strings.NewReader(tt.url))
+			req.Header.Set("Content-Type", tt.contentType)
+			res := httptest.NewRecorder()
+
+			s.SetURL(res, req)
+			assert.Equal(t, tt.expectedStatus, res.Code)
+			assert.Equal(t, tt.expectedBody, res.Body.String())
+
 			if tt.ucIsOn {
 				mockUC.AssertExpectations(t)
 			}
