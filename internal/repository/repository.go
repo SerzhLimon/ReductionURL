@@ -5,12 +5,17 @@ import (
 	"sync"
 )
 
+type Repository interface {
+	Get(hash string) (string, error)
+	Set(url, hash string) error
+}
+
 type MemStorage struct {
 	s  map[string]string
 	mu sync.RWMutex
 }
 
-func NewStrorage() *MemStorage {
+func NewStrorage() Repository {
 	storage := make(map[string]string, 50)
 	return &MemStorage{
 		s: storage,
@@ -28,9 +33,10 @@ func (m *MemStorage) Get(hash string) (string, error) {
 	return url, nil
 }
 
-func (m *MemStorage) Set(url, hash string) {
+func (m *MemStorage) Set(url, hash string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.s[hash] = url
+	return nil
 }

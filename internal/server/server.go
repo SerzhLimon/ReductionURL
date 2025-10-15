@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	s "github.com/SerzhLimon/ReductionURL/internal/service"
+	uc "github.com/SerzhLimon/ReductionURL/internal/service"
 )
 
 const (
@@ -16,16 +16,20 @@ const (
 
 type Server struct {
 	core *http.ServeMux
-	uc   *s.Service
+	Uc   uc.UseCase
 }
 
 func NewServer() *Server {
 	server := &Server{
 		core: http.NewServeMux(),
-		uc:   s.NewService(),
+		Uc:   uc.NewService(),
 	}
-	server.core.HandleFunc("/", server.Handlers)
 	return server
+}
+
+func (s *Server) Route() {
+	s.core.HandleFunc("/", s.SetURL)
+	s.core.HandleFunc("/{id}", s.GetURL)
 }
 
 func (s *Server) Run() {
@@ -54,7 +58,7 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
-	hash, err := s.uc.SetURL(string(body))
+	hash, err := s.Uc.SetURL(string(body))
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
@@ -72,7 +76,7 @@ func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
 
 	hash := strings.TrimPrefix(req.URL.Path, "/")
 
-	url, err := s.uc.GetURL(hash)
+	url, err := s.Uc.GetURL(hash)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
@@ -80,15 +84,4 @@ func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
-}
-
-func (s *Server) Handlers(res http.ResponseWriter, req *http.Request) {
-	switch req.Method {
-	case http.MethodPost:
-		s.SetURL(res, req)
-	case http.MethodGet:
-		s.GetURL(res, req)
-	default:
-		http.Error(res, "method not allowed", http.StatusMethodNotAllowed)
-	}
 }

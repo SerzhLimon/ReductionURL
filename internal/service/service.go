@@ -8,11 +8,17 @@ import (
 	repo "github.com/SerzhLimon/ReductionURL/internal/repository"
 )
 
-type Service struct {
-	repo *repo.MemStorage
+type UseCase interface {
+	SetURL(url string) (string, error)
+	GetURL(hash string) (string, error)
 }
 
-func NewService() *Service {
+type Service struct {
+	repo repo.Repository
+
+}
+
+func NewService() UseCase {
 	return &Service{
 		repo: repo.NewStrorage(),
 	}
@@ -26,9 +32,9 @@ func (s *Service) SetURL(url string) (string, error) {
 
 	hash := sha256.Sum256([]byte(url))
 	shortHash := fmt.Sprintf("%x", hash[:8])
-	s.repo.Set(url, shortHash)
+	err := s.repo.Set(url, shortHash)
 
-	return shortHash, nil
+	return shortHash, err
 }
 
 func (s *Service) GetURL(hash string) (string, error) {

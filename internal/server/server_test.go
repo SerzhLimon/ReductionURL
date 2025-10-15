@@ -1,0 +1,107 @@
+package server_test
+
+import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	s "github.com/SerzhLimon/ReductionURL/internal/server"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+// Mock для use case
+type MockUseCase struct {
+	mock.Mock
+}
+
+func newWrapServer() *s.Server {
+	uc := &MockUseCase{}
+	return &s.Server{
+		Uc: uc,
+	}
+}
+
+func (m *MockUseCase) GetURL(hash string) (string, error) {
+	args := m.Called(hash)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockUseCase) SetURL(url string) (string, error) {
+	args := m.Called(url)
+	return args.String(0), args.Error(1)
+}
+
+func TestServerGetURL(t *testing.T) {
+	tests := []struct {
+		name   string
+		method string
+		path   string
+
+		ucIsOn    bool
+		mockHash  string
+		mockURL   string
+		mockError error
+
+		expectedStatus   int
+		expectedLocation string
+	}{
+		{
+			name:   "successful redirect",
+			method: http.MethodGet,
+			path:   "/42b3e75f92145d25",
+
+			ucIsOn: true,
+			mockHash:  "42b3e75f92145d25",
+			mockURL:   "https://practicum.yandex.ru/",
+			mockError: nil,
+
+			expectedStatus:   http.StatusTemporaryRedirect,
+			expectedLocation: "https://practicum.yandex.ru/",
+		},
+		{
+			name:   "wrong method",
+			method: http.MethodPost,
+			path:   "/abc123",
+
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:   "not found",
+			method: http.MethodGet,
+			path:   "/qweasdzxc",
+
+			ucIsOn: true,
+			mockHash:  "qweasdzxc",
+			mockURL:   "",
+			mockError: fmt.Errorf("not found"),
+
+			expectedStatus:   http.StatusBadRequest,
+			expectedLocation: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := newWrapServer()
+
+			mockUC := s.Uc.(*MockUseCase)
+			if tt.ucIsOn {
+				mockUC.On("GetURL", tt.mockHash).Return(tt.mockURL, tt.mockError)
+			}
+
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			res := httptest.NewRecorder()
+
+			s.GetURL(res, req)
+			assert.Equal(t, tt.expectedStatus, res.Code)
+			if tt.expectedLocation != "" {
+				assert.Equal(t, tt.expectedLocation, res.Header().Get("Location"))
+			}
+			if tt.ucIsOn {
+				mockUC.AssertExpectations(t)
+			}
+		})
+	}
+}
