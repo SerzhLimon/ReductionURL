@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
+
 	uc "github.com/SerzhLimon/ReductionURL/internal/service"
 )
 
@@ -15,21 +17,22 @@ const (
 )
 
 type Server struct {
-	core *http.ServeMux
+	core *chi.Mux
 	uc   uc.UseCase
 }
 
 func NewServer() *Server {
 	server := &Server{
-		core: http.NewServeMux(),
+		core: chi.NewRouter(),
 		uc:   uc.NewService(),
 	}
+	server.route()
 	return server
 }
 
-func (s *Server) Route() {
-	s.core.HandleFunc("/", s.SetURL)
-	s.core.HandleFunc("/{id}", s.GetURL)
+func (s *Server) route() {
+	s.core.Post("/", s.SetURL)
+	s.core.Get("/{id}", s.GetURL)
 }
 
 func (s *Server) Run() {
