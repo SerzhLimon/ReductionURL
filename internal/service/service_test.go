@@ -75,7 +75,7 @@ func TestServiceGetURL(t *testing.T) {
 	tests := []struct {
 		name     string
 		hash     string
-		wantUrl  string
+		wantURL  string
 		wantErr  error
 		repoIsOn bool
 
@@ -84,7 +84,7 @@ func TestServiceGetURL(t *testing.T) {
 		{
 			name:     "success get",
 			hash:     "78264b7b9514f66e",
-			wantUrl:  "someUrl",
+			wantURL:  "someUrl",
 			wantErr:  nil,
 			repoIsOn: true,
 			mockHash: "78264b7b9514f66e",
@@ -92,7 +92,7 @@ func TestServiceGetURL(t *testing.T) {
 		{
 			name:     "empty upl",
 			hash:     "",
-			wantUrl:  "",
+			wantURL:  "",
 			wantErr:  fmt.Errorf("incorrect id"),
 			repoIsOn: false,
 		},
@@ -103,12 +103,12 @@ func TestServiceGetURL(t *testing.T) {
 			mockRepo := s.repo.(*MockRepo)
 
 			if tt.repoIsOn {
-				mockRepo.On("Get", tt.mockHash).Return(tt.wantUrl, nil)
+				mockRepo.On("Get", tt.mockHash).Return(tt.wantURL, nil)
 			}
 
-			gotUrl, err := s.GetURL(tt.hash)
+			gotURL, err := s.GetURL(tt.hash)
 
-			assert.Equal(t, tt.wantUrl, gotUrl)
+			assert.Equal(t, tt.wantURL, gotURL)
 			assert.Equal(t, tt.wantErr, err)
 		})
 	}
