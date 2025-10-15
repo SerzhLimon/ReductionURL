@@ -63,9 +63,10 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(hash))
+	res.Write([]byte("http://localhost:8080/" + hash))
 }
 
 func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
