@@ -1,4 +1,4 @@
-package server_test
+package server
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	s "github.com/SerzhLimon/ReductionURL/internal/server"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -17,10 +16,10 @@ type MockUseCase struct {
 	mock.Mock
 }
 
-func newWrapServer() *s.Server {
+func newWrapServer() *Server {
 	uc := &MockUseCase{}
-	return &s.Server{
-		Uc: uc,
+	return &Server{
+		uc: uc,
 	}
 }
 
@@ -87,7 +86,7 @@ func TestServerGetURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := newWrapServer()
 
-			mockUC := s.Uc.(*MockUseCase)
+			mockUC := s.uc.(*MockUseCase)
 			if tt.ucIsOn {
 				mockUC.On("GetURL", tt.mockHash).Return(tt.mockURL, tt.mockError)
 			}
@@ -170,7 +169,7 @@ func TestServerSetURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := newWrapServer()
 
-			mockUC := s.Uc.(*MockUseCase)
+			mockUC := s.uc.(*MockUseCase)
 			if tt.ucIsOn {
 				mockUC.On("SetURL", tt.mockURL).Return(tt.mockHash, tt.mockError)
 			}

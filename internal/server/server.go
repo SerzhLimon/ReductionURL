@@ -16,13 +16,13 @@ const (
 
 type Server struct {
 	core *http.ServeMux
-	Uc   uc.UseCase
+	uc   uc.UseCase
 }
 
 func NewServer() *Server {
 	server := &Server{
 		core: http.NewServeMux(),
-		Uc:   uc.NewService(),
+		uc:   uc.NewService(),
 	}
 	return server
 }
@@ -58,7 +58,7 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
-	hash, err := s.Uc.SetURL(string(body))
+	hash, err := s.uc.SetURL(string(body))
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
@@ -76,7 +76,7 @@ func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
 
 	hash := strings.TrimPrefix(req.URL.Path, "/")
 
-	url, err := s.Uc.GetURL(hash)
+	url, err := s.uc.GetURL(hash)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
