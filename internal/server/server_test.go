@@ -21,8 +21,8 @@ type MockUseCase struct {
 func newWrapServer() *Server {
 	cfg := &config.Config{
 		Opts: &config.Options{
-			Addr:    "http://localhost:8080",
-			BaseURL: "http://localhost:8080",
+			Addr:    "localhost:8080",
+			BaseURL: "localhost:8080",
 		},
 	}
 	uc := &MockUseCase{}

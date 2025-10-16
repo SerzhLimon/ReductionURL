@@ -16,8 +16,8 @@ type Options struct {
 }
 
 func newOpts() (*Options, error) {
-	var addr = flag.String("a", "http://localhost:8080", "server host")
-	var baseURL = flag.String("b", "http://localhost:8080", "value before short URL")
+	var addr = flag.String("a", "localhost:8080", "server host")
+	var baseURL = flag.String("b", "localhost:8080", "value before short URL")
 	flag.Parse()
 
 	parsedURL, err := url.Parse(*addr)
