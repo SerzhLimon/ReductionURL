@@ -68,7 +68,7 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte("http://" + s.cfg.Opts.BaseURL + "/" + hash))
+	res.Write([]byte(s.cfg.Opts.BaseURL + "/" + hash))
 }
 
 func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {

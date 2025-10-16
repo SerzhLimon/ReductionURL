@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 type Config struct {
@@ -29,6 +30,18 @@ func newOpts() (*Options, error) {
 	if err != nil {
 		return nil, fmt.Errorf("incorrect parametr `-b` %s", *baseURL)
 	}
+	if !strings.HasPrefix(*addr, "http://") && !strings.HasPrefix(*addr, "https://") {
+        *baseURL = "http://" + *addr
+    }
+    
+    // Убираем trailing slash
+    *baseURL = strings.TrimSuffix(*baseURL, "/")
+	if !strings.HasPrefix(*baseURL, "http://") && !strings.HasPrefix(*baseURL, "https://") {
+		*baseURL = "http://" + *baseURL
+	}
+
+	// Убираем trailing slash
+	*baseURL = strings.TrimSuffix(*baseURL, "/")
 	return &Options{
 		Addr:    *addr,
 		BaseURL: *baseURL,

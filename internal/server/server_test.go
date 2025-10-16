@@ -142,7 +142,7 @@ func TestServerSetURL(t *testing.T) {
 			mockError: nil,
 
 			expectedStatus: http.StatusCreated,
-			expectedBody:   "http://localhost:8080/42b3e75f92145d25",
+			expectedBody:   "localhost:8080/42b3e75f92145d25",
 		},
 		{
 			name:        "bad content type",
