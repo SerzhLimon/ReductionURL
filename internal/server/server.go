@@ -9,19 +9,17 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/SerzhLimon/ReductionURL/internal/config"
 	uc "github.com/SerzhLimon/ReductionURL/internal/service"
 )
 
-const (
-	addr = "localhost:8080"
-)
-
 type Server struct {
+	cfg *config.Config
 	core *chi.Mux
 	uc   uc.UseCase
 }
 
-func NewServer() *Server {
+func NewServer(cfg *config.Config) *Server {
 	server := &Server{
 		core: chi.NewRouter(),
 		uc:   uc.NewService(),
@@ -37,7 +35,7 @@ func (s *Server) route() {
 
 func (s *Server) Run() {
 	fmt.Println("server started ...")
-	if err := http.ListenAndServe(addr, s.core); err != nil {
+	if err := http.ListenAndServe(s.cfg.Opts.Addr, s.core); err != nil {
 		log.Fatalln(err)
 	}
 }
@@ -69,7 +67,7 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte("http://localhost:8080/" + hash))
+	res.Write([]byte(s.cfg.Opts.BaseURL + "/" + hash))
 }
 
 func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {

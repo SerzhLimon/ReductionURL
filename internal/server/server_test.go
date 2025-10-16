@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/SerzhLimon/ReductionURL/internal/config"
 )
 
 // Mock для use case
@@ -17,9 +19,16 @@ type MockUseCase struct {
 }
 
 func newWrapServer() *Server {
+	cfg := &config.Config{
+		Opts: &config.Options{
+			Addr:    "http://localhost:8080",
+			BaseURL: "http://localhost:8080",
+		},
+	}
 	uc := &MockUseCase{}
 	return &Server{
-		uc: uc,
+		cfg: cfg,
+		uc:  uc,
 	}
 }
 
