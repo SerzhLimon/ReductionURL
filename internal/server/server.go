@@ -21,6 +21,7 @@ type Server struct {
 
 func NewServer(cfg *config.Config) *Server {
 	server := &Server{
+		cfg: cfg,
 		core: chi.NewRouter(),
 		uc:   uc.NewService(),
 	}
