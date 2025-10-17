@@ -31,7 +31,7 @@ func newOpts() (*Options, error) {
 		return nil, fmt.Errorf("incorrect parametr `-b` %s", *baseURL)
 	}
 	if !strings.HasPrefix(*addr, "http://") && !strings.HasPrefix(*addr, "https://") {
-		*baseURL = "http://" + *addr
+		*addr = "http://" + *addr
 	}
 	*addr = strings.TrimSuffix(*addr, "/")
 
