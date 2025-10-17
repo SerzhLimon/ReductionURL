@@ -21,13 +21,11 @@ func newOpts() (*Options, error) {
 	var baseURL = flag.String("b", "localhost:8080", "value before short URL")
 	flag.Parse()
 
-	_, err := url.Parse("https://" + *addr)
-	if err != nil {
+	if _, err := url.Parse("https://" + *addr); err != nil {
 		return nil, fmt.Errorf("incorrect parametr `-a` %s", *addr)
 	}
 
-	_, err = url.Parse("https://" + *baseURL)
-	if err != nil {
+	if _, err := url.Parse("https://" + *baseURL); err != nil {
 		return nil, fmt.Errorf("incorrect parametr `-b` %s", *baseURL)
 	}
 
