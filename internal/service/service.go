@@ -15,12 +15,11 @@ type UseCase interface {
 
 type Service struct {
 	repo repo.Repository
-
 }
 
 func NewService() UseCase {
 	return &Service{
-		repo: repo.NewStrorage(),
+		repo: repo.NewStorage(),
 	}
 }
 

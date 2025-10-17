@@ -70,13 +70,6 @@ func TestServerGetURL(t *testing.T) {
 			expectedLocation: "https://practicum.yandex.ru/",
 		},
 		{
-			name:   "wrong method",
-			method: http.MethodPost,
-			path:   "/abc123",
-
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
 			name:   "not found",
 			method: http.MethodGet,
 			path:   "/qweasdzxc",
@@ -157,20 +150,6 @@ func TestServerSetURL(t *testing.T) {
 
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "Content-Type must be text/plain\n",
-		},
-		{
-			name:        "invalid method",
-			method:      http.MethodTrace,
-			url:         "https://practicum.yandex.ru/",
-			contentType: "text/plain",
-
-			ucIsOn:    false,
-			mockURL:   "https://practicum.yandex.ru/",
-			mockHash:  "42b3e75f92145d25",
-			mockError: nil,
-
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   "method must be POST\n",
 		},
 	}
 

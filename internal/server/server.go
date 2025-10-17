@@ -14,14 +14,14 @@ import (
 )
 
 type Server struct {
-	cfg *config.Config
+	cfg  *config.Config
 	core *chi.Mux
 	uc   uc.UseCase
 }
 
 func NewServer(cfg *config.Config) *Server {
 	server := &Server{
-		cfg: cfg,
+		cfg:  cfg,
 		core: chi.NewRouter(),
 		uc:   uc.NewService(),
 	}

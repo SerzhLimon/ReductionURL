@@ -15,7 +15,7 @@ type MemStorage struct {
 	mu sync.RWMutex
 }
 
-func NewStrorage() Repository {
+func NewStorage() Repository {
 	storage := make(map[string]string, 50)
 	return &MemStorage{
 		s: storage,
