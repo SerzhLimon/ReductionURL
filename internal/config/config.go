@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -12,11 +13,25 @@ type Config struct {
 }
 
 type Options struct {
-	Addr    string
-	BaseURL string
+	Addr    string `env:"SERVER_ADDRESS"`
+	BaseURL string `env:"BASE_URL"`
 }
 
 func newOpts() (*Options, error) {
+
+	envAddr := os.Getenv("SERVER_ADDRESS")
+	envBaseURL := os.Getenv("BASE_URL")
+	if envAddr != "" && envBaseURL != "" {
+		if _, err := url.Parse("http://" + envAddr); err == nil {
+			if _, err := url.Parse(envBaseURL); err == nil {
+				return &Options{
+					Addr:    envAddr,
+					BaseURL: envBaseURL,
+				}, nil
+			}
+		}
+	}
+
 	var addr = flag.String("a", "localhost:8080", "server host")
 	var baseURL = flag.String("b", "localhost:8080", "value before short URL")
 	flag.Parse()
