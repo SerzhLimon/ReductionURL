@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -26,6 +27,7 @@ func NewServer(cfg *config.Config) *Server {
 func (s *Server) route() {
 	s.core.Use(handLogger)
 	s.core.Post("/", s.SetURL)
+	s.core.Post("/api/shorten", s.SetURLJson)
 	s.core.Get("/{id}", s.GetURL)
 }
 
@@ -63,7 +65,6 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	logrus.Infoln("qwe", http.StatusCreated)
 	res.Write([]byte(s.cfg.Opts.BaseURL + "/" + hash))
 }
 
@@ -83,4 +84,51 @@ func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(res, "method must be POST", http.StatusBadRequest)
+		return
+	}
+
+	contentType := req.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		http.Error(res, "Content-Type must be application/json", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(res, "cannot read body", http.StatusBadRequest)
+		return
+	}
+	defer req.Body.Close()
+
+	var request SetURLJsonRequest
+	if err = json.Unmarshal(body, &request); err != nil {
+		logrus.Errorln(err)
+		http.Error(res, "cannot unmarshal body", http.StatusBadRequest)
+		return
+	}
+
+	hash, err := s.uc.SetURL(request.Url)
+	if err != nil {
+		logrus.Errorln(err)
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+	hashJson := SetURLJsonResponse{
+		Url: s.cfg.Opts.BaseURL + "/" + hash,
+	}
+
+	response, err := json.Marshal(hashJson)
+	if err != nil {
+		logrus.Errorln(err)
+		http.Error(res, "cannot marshal body", http.StatusBadRequest)
+		return
+	}
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+	res.Write(response)
 }

@@ -24,3 +24,11 @@ type loggingResponseWriter struct {
 	http.ResponseWriter
 	responseData *responseData
 }
+
+type SetURLJsonRequest struct {
+	Url string `json:"some_url"`
+}
+
+type SetURLJsonResponse struct {
+	Url string `json:"short_url"`
+}
