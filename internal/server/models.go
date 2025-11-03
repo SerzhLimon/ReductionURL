@@ -26,9 +26,9 @@ type loggingResponseWriter struct {
 }
 
 type SetURLJsonRequest struct {
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 type SetURLJsonResponse struct {
-	Url string `json:"result"`
+	URL string `json:"result"`
 }

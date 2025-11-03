@@ -112,17 +112,17 @@ func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	hash, err := s.uc.SetURL(request.Url)
+	hash, err := s.uc.SetURL(request.URL)
 	if err != nil {
 		logrus.Errorln(err)
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-	hashJson := SetURLJsonResponse{
-		Url: s.cfg.Opts.BaseURL + "/" + hash,
+	hashJSON := SetURLJsonResponse{
+		URL: s.cfg.Opts.BaseURL + "/" + hash,
 	}
 
-	response, err := json.Marshal(hashJson)
+	response, err := json.Marshal(hashJSON)
 	if err != nil {
 		logrus.Errorln(err)
 		http.Error(res, "cannot marshal body", http.StatusBadRequest)
