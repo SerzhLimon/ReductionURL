@@ -26,6 +26,7 @@ func NewServer(cfg *config.Config) *Server {
 
 func (s *Server) route() {
 	s.core.Use(handLogger)
+	s.core.Use(compress)
 	s.core.Post("/", s.SetURL)
 	s.core.Post("/api/shorten", s.SetURLJson)
 	s.core.Get("/{id}", s.GetURL)
