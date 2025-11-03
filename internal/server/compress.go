@@ -2,7 +2,6 @@ package server
 
 import (
 	"compress/gzip"
-	"io"
 	"net/http"
 	"strings"
 )
@@ -19,38 +18,40 @@ func compress(next http.Handler) http.Handler {
 			r.Body = gz
 		}
 
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			w.Header().Set("Vary", "Accept-Encoding")
-
-			gw := &gzipWriter{
-				ResponseWriter: w,
-				Writer:         gzip.NewWriter(w),
-			}
-			defer gw.Writer.(*gzip.Writer).Close()
-
-			next.ServeHTTP(gw, r)
-			return
+		rw := &responseWriter{
+			ResponseWriter: w,
+			r:              r,
 		}
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(rw, r)
+		rw.finish()
 	})
 }
 
-type gzipWriter struct {
-	http.ResponseWriter
-	io.Writer
+func (w *responseWriter) WriteHeader(statusCode int) {
+	w.statusCode = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
 }
 
-func (g *gzipWriter) Write(b []byte) (int, error) {
-	if g.Header().Get("Content-Type") == "" {
-		g.Header().Set("Content-Type", http.DetectContentType(b))
+func (w *responseWriter) Write(b []byte) (int, error) {
+	contentType := w.Header().Get("Content-Type")
+	shouldCompress := (contentType == "application/json" || contentType == "text/html") &&
+		strings.Contains(w.r.Header.Get("Accept-Encoding"), "gzip")
+
+	if shouldCompress && w.writer == nil {
+		w.Header().Set("Content-Encoding", "gzip")
+		w.writer = gzip.NewWriter(w.ResponseWriter)
 	}
 
-	contentType := g.Header().Get("Content-Type")
-	if contentType == "application/json" || contentType == "text/html" {
-		g.Header().Set("Content-Encoding", "gzip")
-		return g.Writer.Write(b)
+	if w.writer != nil {
+		return w.writer.Write(b)
 	}
 
-	return g.ResponseWriter.Write(b)
+	return w.ResponseWriter.Write(b)
+}
+
+func (w *responseWriter) finish() {
+	if w.writer != nil {
+		w.writer.(*gzip.Writer).Close()
+	}
 }

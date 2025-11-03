@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -31,4 +32,11 @@ type SetURLJsonRequest struct {
 
 type SetURLJsonResponse struct {
 	URL string `json:"result"`
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	r          *http.Request
+	writer     io.Writer
+	statusCode int
 }
