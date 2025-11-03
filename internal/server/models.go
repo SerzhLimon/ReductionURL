@@ -1,7 +1,7 @@
 package server
 
 import (
-	"io"
+	"compress/gzip"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -34,9 +34,9 @@ type SetURLJsonResponse struct {
 	URL string `json:"result"`
 }
 
-type responseWriter struct {
+type gzipResponseWriter struct {
 	http.ResponseWriter
-	r          *http.Request
-	writer     io.Writer
-	statusCode int
+	writer      *gzip.Writer
+	acceptsGzip bool
+	wroteHeader bool
 }
