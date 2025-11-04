@@ -23,21 +23,24 @@ func newOpts() (*Options, error) {
 	envAddr := os.Getenv("SERVER_ADDRESS")
 	envBaseURL := os.Getenv("BASE_URL")
 	envStorageFile := os.Getenv("FILE_STORAGE_PATH")
-	if envAddr != "" && envBaseURL != "" && envStorageFile != "" {
-		if _, err := url.Parse("http://" + envAddr); err == nil {
-			if _, err := url.Parse(envBaseURL); err == nil {
-				return &Options{
-					Addr:        envAddr,
-					BaseURL:     envBaseURL,
-					StorageFile: envStorageFile,
-				}, nil
-			}
-		}
+	
+	var addr, baseURL, storageFile *string
+	if envAddr != "" {
+		addr = &envAddr
+	} else {
+		addr = flag.String("a", "localhost:8080", "server host")
 	}
-
-	var addr = flag.String("a", "localhost:8080", "server host")
-	var baseURL = flag.String("b", "localhost:8080", "value before short URL")
-	var storageFile = flag.String("f", "storage.json", "file for save data")
+	if envBaseURL != "" {
+		baseURL = &envBaseURL
+	} else {
+		baseURL = flag.String("b", "localhost:8080", "value before short URL")
+	}
+	if envStorageFile != "" {
+		storageFile = &envStorageFile
+	} else {
+		storageFile = flag.String("f", "storage.json", "file for save data")
+	}
+	
 	flag.Parse()
 
 	if _, err := url.Parse("https://" + *addr); err != nil {
