@@ -7,7 +7,9 @@ import (
 	"os"
 	"strings"
 )
-
+const (
+	format = ".json"
+)
 type Config struct {
 	Opts *Options
 }
@@ -19,6 +21,8 @@ type Options struct {
 }
 
 func newOpts() (*Options, error) {
+	pwd, _ := os.Getwd()
+	pwd+="/"
 	envAddr := os.Getenv("SERVER_ADDRESS")
 	envBaseURL := os.Getenv("BASE_URL")
 	envStorageFile := os.Getenv("FILE_STORAGE_PATH")
@@ -28,7 +32,7 @@ func newOpts() (*Options, error) {
 				return &Options{
 					Addr:        envAddr,
 					BaseURL:     envBaseURL,
-					StorageFile: envStorageFile,
+					StorageFile: pwd+envStorageFile+format,
 				}, nil
 			}
 		}
@@ -54,7 +58,7 @@ func newOpts() (*Options, error) {
 	return &Options{
 		Addr:        *addr,
 		BaseURL:     *baseURL,
-		StorageFile: *storageFile,
+		StorageFile: pwd+*storageFile+format,
 	}, nil
 }
 
