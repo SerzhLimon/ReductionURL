@@ -65,11 +65,11 @@ func (fs *FileStorage) loadFromFile() error {
 	return nil
 }
 
-func (m *FileStorage) Get(hash string) (string, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+func (fs *FileStorage) Get(hash string) (string, error) {
+	fs.mu.RLock()
+	defer fs.mu.RUnlock()
 
-	url, exist := m.s[hash]
+	url, exist := fs.s[hash]
 	if !exist {
 		return "", fmt.Errorf("%s not found", hash)
 	}
