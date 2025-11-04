@@ -22,7 +22,6 @@ type Options struct {
 
 func newOpts() (*Options, error) {
 	pwd, _ := os.Getwd()
-	pwd+="/"
 	envAddr := os.Getenv("SERVER_ADDRESS")
 	envBaseURL := os.Getenv("BASE_URL")
 	envStorageFile := os.Getenv("FILE_STORAGE_PATH")

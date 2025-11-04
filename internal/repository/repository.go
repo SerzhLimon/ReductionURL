@@ -86,27 +86,22 @@ func (fs *FileStorage) loadFromFile() error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
-	file, err := os.Open(fs.cfg.Opts.StorageFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-
-	info, err := file.Stat()
-	if err != nil {
-		return fmt.Errorf("failed to get file info: %w", err)
-	}
-
-	if info.Size() == 0 {
+	if _, err := os.Stat(fs.cfg.Opts.StorageFile); os.IsNotExist(err) {
+		fmt.Println("File does not exist")
 		return nil
 	}
 
-	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&fs.s); err != nil {
-		return fmt.Errorf("failed to decode JSON: %w", err)
+	data, err := os.ReadFile(fs.cfg.Opts.StorageFile)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	if len(data) == 0 {
+		return nil
+	}
+
+	if err := json.Unmarshal(data, &fs.s); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
 
 	return nil
