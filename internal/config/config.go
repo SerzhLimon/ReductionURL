@@ -7,9 +7,7 @@ import (
 	"os"
 	"strings"
 )
-const (
-	format = ".json"
-)
+
 type Config struct {
 	Opts *Options
 }
@@ -31,7 +29,7 @@ func newOpts() (*Options, error) {
 				return &Options{
 					Addr:        envAddr,
 					BaseURL:     envBaseURL,
-					StorageFile: envStorageFile+format,
+					StorageFile: envStorageFile,
 				}, nil
 			}
 		}
@@ -57,7 +55,7 @@ func newOpts() (*Options, error) {
 	return &Options{
 		Addr:        *addr,
 		BaseURL:     *baseURL,
-		StorageFile: *storageFile+format,
+		StorageFile: *storageFile,
 	}, nil
 }
 
