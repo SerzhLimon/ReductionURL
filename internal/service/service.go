@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/SerzhLimon/ReductionURL/internal/config"
 	repo "github.com/SerzhLimon/ReductionURL/internal/repository"
 )
 
@@ -17,10 +18,14 @@ type Service struct {
 	repo repo.Repository
 }
 
-func NewService() UseCase {
-	return &Service{
-		repo: repo.NewStorage(),
+func NewService(cfg *config.Config) (UseCase, error) {
+	repo, err := repo.NewStorage(cfg)
+	if err != nil {
+		return nil, err
 	}
+	return &Service{
+		repo: repo,
+	}, nil
 }
 
 func (s *Service) SetURL(url string) (string, error) {

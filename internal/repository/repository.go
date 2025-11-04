@@ -1,8 +1,12 @@
 package repository
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
+
+	"github.com/SerzhLimon/ReductionURL/internal/config"
 )
 
 type Repository interface {
@@ -10,19 +14,58 @@ type Repository interface {
 	Set(url, hash string) error
 }
 
-type MemStorage struct {
-	s  map[string]string
-	mu sync.RWMutex
+type FileStorage struct {
+	cfg *config.Config
+	s   map[string]string
+	mu  sync.RWMutex
 }
 
-func NewStorage() Repository {
+func NewStorage(cfg *config.Config) (Repository, error) {
 	storage := make(map[string]string, 50)
-	return &MemStorage{
-		s: storage,
+
+	fs := &FileStorage{
+		s:   storage,
+		cfg: cfg,
 	}
+	
+	err := fs.loadFromFile()
+	if err != nil {
+		return nil, err
+	}
+	return fs, nil
 }
 
-func (m *MemStorage) Get(hash string) (string, error) {
+func (fs *FileStorage) loadFromFile() error {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+
+	file, err := os.Open(fs.cfg.Opts.StorageFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	if info.Size() == 0 {
+		return nil
+	}
+
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&fs.s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *FileStorage) Get(hash string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -33,10 +76,22 @@ func (m *MemStorage) Get(hash string) (string, error) {
 	return url, nil
 }
 
-func (m *MemStorage) Set(url, hash string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+func (fs *FileStorage) Set(url, hash string) error {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
 
-	m.s[hash] = url
-	return nil
+	fs.s[hash] = url
+	return fs.saveToFile()
+}
+
+func (fs *FileStorage) saveToFile() error {
+	file, err := os.OpenFile(fs.cfg.Opts.StorageFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(fs.s)
 }

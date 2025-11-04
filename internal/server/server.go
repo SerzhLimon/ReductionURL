@@ -14,14 +14,18 @@ import (
 	uc "github.com/SerzhLimon/ReductionURL/internal/service"
 )
 
-func NewServer(cfg *config.Config) *Server {
+func NewServer(cfg *config.Config) (*Server, error) {
+	uc, err := uc.NewService(cfg)
+	if err != nil {
+		return nil, err
+	}
 	server := &Server{
 		cfg:  cfg,
 		core: chi.NewRouter(),
-		uc:   uc.NewService(),
+		uc:   uc,
 	}
 	server.route()
-	return server
+	return server, nil
 }
 
 func (s *Server) route() {

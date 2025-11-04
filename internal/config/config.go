@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -13,20 +14,28 @@ type Config struct {
 }
 
 type Options struct {
-	Addr    string `env:"SERVER_ADDRESS"`
-	BaseURL string `env:"BASE_URL"`
+	Addr        string `env:"SERVER_ADDRESS"`
+	BaseURL     string `env:"BASE_URL"`
+	StorageFile string `env:"FILE_STORAGE_PATH"`
+}
+
+func getStoragePath(filename string) string {
+	currentDir, _ := os.Getwd()
+	return filepath.Join(currentDir, "internal", "repository", filename)
 }
 
 func newOpts() (*Options, error) {
-
 	envAddr := os.Getenv("SERVER_ADDRESS")
 	envBaseURL := os.Getenv("BASE_URL")
-	if envAddr != "" && envBaseURL != "" {
+	envStorageFile := os.Getenv("FILE_STORAGE_PATH")
+	if envAddr != "" && envBaseURL != "" && envStorageFile != "" {
+		path := getStoragePath(envStorageFile) 
 		if _, err := url.Parse("http://" + envAddr); err == nil {
 			if _, err := url.Parse(envBaseURL); err == nil {
 				return &Options{
-					Addr:    envAddr,
-					BaseURL: envBaseURL,
+					Addr:        envAddr,
+					BaseURL:     envBaseURL,
+					StorageFile: path,
 				}, nil
 			}
 		}
@@ -34,6 +43,7 @@ func newOpts() (*Options, error) {
 
 	var addr = flag.String("a", "localhost:8080", "server host")
 	var baseURL = flag.String("b", "localhost:8080", "value before short URL")
+	var storageFile = flag.String("f", "storage.json", "file for save data")
 	flag.Parse()
 
 	if _, err := url.Parse("https://" + *addr); err != nil {
@@ -48,9 +58,11 @@ func newOpts() (*Options, error) {
 		*baseURL = "http://" + *baseURL
 	}
 	*baseURL = strings.TrimSuffix(*baseURL, "/")
+	path := getStoragePath(*storageFile)
 	return &Options{
-		Addr:    *addr,
-		BaseURL: *baseURL,
+		Addr:        *addr,
+		BaseURL:     *baseURL,
+		StorageFile: path,
 	}, nil
 }
 
