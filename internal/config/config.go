@@ -73,17 +73,23 @@ func NewConfig() (*Config, error) {
 }
 
 func newOpts() (*Options, error) {
-	// pwd, _ := os.Getwd()
 	envAddr := os.Getenv("SERVER_ADDRESS")
 	envBaseURL := os.Getenv("BASE_URL")
 	envStorageFile := os.Getenv("FILE_STORAGE_PATH")
-	if envAddr != "" && envBaseURL != "" && envStorageFile != "" {
+
+	
+	storageFileValue := "storage.json" 
+	if envStorageFile != "" {
+		storageFileValue = envStorageFile
+	}
+
+	if envAddr != "" && envBaseURL != "" {
 		if _, err := url.Parse("http://" + envAddr); err == nil {
 			if _, err := url.Parse(envBaseURL); err == nil {
 				return &Options{
 					Addr:        envAddr,
 					BaseURL:     envBaseURL,
-					StorageFile: envStorageFile,
+					StorageFile: storageFileValue,
 				}, nil
 			}
 		}
@@ -94,21 +100,39 @@ func newOpts() (*Options, error) {
 	var storageFile = flag.String("f", "storage.json", "file for save data")
 	flag.Parse()
 
-	if _, err := url.Parse("https://" + *addr); err != nil {
-		return nil, fmt.Errorf("incorrect parametr `-a` %s", *addr)
+	
+	addrValue := *addr
+	if envAddr != "" {
+		addrValue = envAddr
 	}
 
-	if _, err := url.Parse("https://" + *baseURL); err != nil {
-		return nil, fmt.Errorf("incorrect parametr `-b` %s", *baseURL)
+	baseURLValue := *baseURL
+	if envBaseURL != "" {
+		baseURLValue = envBaseURL
 	}
 
-	if !strings.HasPrefix(*baseURL, "http://") && !strings.HasPrefix(*baseURL, "https://") {
-		*baseURL = "http://" + *baseURL
+	if _, err := url.Parse("https://" + addrValue); err != nil {
+		return nil, fmt.Errorf("incorrect parametr `-a` %s", addrValue)
 	}
-	*baseURL = strings.TrimSuffix(*baseURL, "/")
+
+	if _, err := url.Parse("https://" + baseURLValue); err != nil {
+		return nil, fmt.Errorf("incorrect parametr `-b` %s", baseURLValue)
+	}
+
+	if !strings.HasPrefix(baseURLValue, "http://") && !strings.HasPrefix(baseURLValue, "https://") {
+		baseURLValue = "http://" + baseURLValue
+	}
+	baseURLValue = strings.TrimSuffix(baseURLValue, "/")
+
+	if envStorageFile != "" {
+		storageFileValue = envStorageFile
+	} else {
+		storageFileValue = *storageFile
+	}
+
 	return &Options{
-		Addr:        *addr,
-		BaseURL:     *baseURL,
-		StorageFile: *storageFile,
+		Addr:        addrValue,
+		BaseURL:     baseURLValue,
+		StorageFile: storageFileValue,
 	}, nil
 }
