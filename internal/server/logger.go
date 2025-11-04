@@ -30,19 +30,19 @@ func handLogger(h http.Handler) http.Handler {
 }
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
-    if r.responseData.status == 0 {
-        r.responseData.status = http.StatusOK
-    }
-    size, err := r.ResponseWriter.Write(b)
-    r.responseData.size += size
-    return size, err
+	if r.responseData.status == 0 {
+		r.responseData.status = http.StatusOK
+	}
+	size, err := r.ResponseWriter.Write(b)
+	r.responseData.size += size
+	return size, err
 }
 
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
-    r.ResponseWriter.WriteHeader(statusCode)
-    r.responseData.status = statusCode
+	r.ResponseWriter.WriteHeader(statusCode)
+	r.responseData.status = statusCode
 }
 
 func (r *loggingResponseWriter) Header() http.Header {
-    return r.ResponseWriter.Header()
+	return r.ResponseWriter.Header()
 }
