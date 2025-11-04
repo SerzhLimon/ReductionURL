@@ -18,6 +18,60 @@ type Options struct {
 	StorageFile string `env:"FILE_STORAGE_PATH"`
 }
 
+// func newOpts() (*Options, error) {
+// 	// pwd, _ := os.Getwd()
+// 	envAddr := os.Getenv("SERVER_ADDRESS")
+// 	envBaseURL := os.Getenv("BASE_URL")
+// 	envStorageFile := os.Getenv("FILE_STORAGE_PATH")
+	
+// 	var addr, baseURL, storageFile *string
+// 	if envAddr != "" {
+// 		addr = &envAddr
+// 	} else {
+// 		addr = flag.String("a", "localhost:8080", "server host")
+// 	}
+// 	if envBaseURL != "" {
+// 		baseURL = &envBaseURL
+// 	} else {
+// 		baseURL = flag.String("b", "localhost:8080", "value before short URL")
+// 	}
+// 	if envStorageFile != "" {
+// 		storageFile = &envStorageFile
+// 	} else {
+// 		storageFile = flag.String("f", "storage.json", "file for save data")
+// 	}
+	
+// 	flag.Parse()
+
+// 	if _, err := url.Parse("https://" + *addr); err != nil {
+// 		return nil, fmt.Errorf("incorrect parametr `-a` %s", *addr)
+// 	}
+
+// 	if _, err := url.Parse("https://" + *baseURL); err != nil {
+// 		return nil, fmt.Errorf("incorrect parametr `-b` %s", *baseURL)
+// 	}
+
+// 	if !strings.HasPrefix(*baseURL, "http://") && !strings.HasPrefix(*baseURL, "https://") {
+// 		*baseURL = "http://" + *baseURL
+// 	}
+// 	*baseURL = strings.TrimSuffix(*baseURL, "/")
+// 	return &Options{
+// 		Addr:        *addr,
+// 		BaseURL:     *baseURL,
+// 		StorageFile: *storageFile,
+// 	}, nil
+// }
+
+func NewConfig() (*Config, error) {
+	opts, err := newOpts()
+	if err != nil {
+		return nil, err
+	}
+	return &Config{
+		Opts: opts,
+	}, nil
+}
+
 func newOpts() (*Options, error) {
 	// pwd, _ := os.Getwd()
 	envAddr := os.Getenv("SERVER_ADDRESS")
@@ -56,15 +110,5 @@ func newOpts() (*Options, error) {
 		Addr:        *addr,
 		BaseURL:     *baseURL,
 		StorageFile: *storageFile,
-	}, nil
-}
-
-func NewConfig() (*Config, error) {
-	opts, err := newOpts()
-	if err != nil {
-		return nil, err
-	}
-	return &Config{
-		Opts: opts,
 	}, nil
 }

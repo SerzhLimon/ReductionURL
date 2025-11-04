@@ -31,6 +31,7 @@ type FileStorage struct {
 }
 
 func NewStorage(cfg *config.Config) (Repository, error) {
+
 	fs := &FileStorage{
 		cfg: cfg,
 	}
