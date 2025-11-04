@@ -44,6 +44,7 @@ func (fs *FileStorage) Get(hash string) (string, error) {
 	if !exist {
 		return "", fmt.Errorf("%s not found", hash)
 	}
+	// log.Println("FOUND", url)
 	return url, nil
 }
 
@@ -103,6 +104,10 @@ func (fs *FileStorage) loadFromFile() error {
 	if err := json.Unmarshal(data, &fs.s); err != nil {
 		return fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
-
+	// for k, v := range fs.s {
+	// 	fmt.Println("==========")
+	// 	fmt.Printf("k %s v %s", k,v)
+	// 	fmt.Println("\n==========")
+	// }
 	return nil
 }
