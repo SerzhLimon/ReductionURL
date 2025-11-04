@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
@@ -27,7 +28,7 @@ func NewStorage(cfg *config.Config) (Repository, error) {
 		s:   storage,
 		cfg: cfg,
 	}
-	
+
 	err := fs.loadFromFile()
 	if err != nil {
 		return nil, err
@@ -85,6 +86,11 @@ func (fs *FileStorage) Set(url, hash string) error {
 }
 
 func (fs *FileStorage) saveToFile() error {
+	dir := filepath.Dir(fs.cfg.Opts.StorageFile)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
 	file, err := os.OpenFile(fs.cfg.Opts.StorageFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
