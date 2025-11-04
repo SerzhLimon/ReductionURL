@@ -79,7 +79,6 @@ func (fs *FileStorage) saveToFile() error {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-
 	if err := os.WriteFile(fs.cfg.Opts.StorageFile, data, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
