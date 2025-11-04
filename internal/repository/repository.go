@@ -37,10 +37,11 @@ func NewStorage(cfg *config.Config) (Repository, error) {
 }
 
 func (fs *FileStorage) loadFromFile() error {
+	absPath, _ := filepath.Abs(fs.cfg.Opts.StorageFile)
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
-	file, err := os.Open(fs.cfg.Opts.StorageFile)
+	file, err := os.Open(absPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -86,7 +87,8 @@ func (fs *FileStorage) Set(url, hash string) error {
 }
 
 func (fs *FileStorage) saveToFile() error {
-	dir := filepath.Dir(fs.cfg.Opts.StorageFile)
+	absPath, _ := filepath.Abs(fs.cfg.Opts.StorageFile)
+	dir := filepath.Dir(absPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
@@ -99,5 +101,9 @@ func (fs *FileStorage) saveToFile() error {
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
-	return encoder.Encode(fs.s)
+	if err := encoder.Encode(fs.s); err != nil {
+		return err
+	}
+	
+	return nil
 }

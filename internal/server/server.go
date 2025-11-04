@@ -37,7 +37,7 @@ func (s *Server) route() {
 }
 
 func (s *Server) Run() {
-	logrus.Infoln("server started ...")
+	logrus.Infof("server started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
 	if err := http.ListenAndServe(s.cfg.Opts.Addr, s.core); err != nil {
 		log.Fatalln(err)
 	}
