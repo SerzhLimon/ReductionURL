@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -19,23 +18,17 @@ type Options struct {
 	StorageFile string `env:"FILE_STORAGE_PATH"`
 }
 
-func getStoragePath(filename string) string {
-	currentDir, _ := os.Getwd()
-	return filepath.Join(currentDir, "internal", "repository", filename)
-}
-
 func newOpts() (*Options, error) {
 	envAddr := os.Getenv("SERVER_ADDRESS")
 	envBaseURL := os.Getenv("BASE_URL")
 	envStorageFile := os.Getenv("FILE_STORAGE_PATH")
 	if envAddr != "" && envBaseURL != "" && envStorageFile != "" {
-		path := getStoragePath(envStorageFile) 
 		if _, err := url.Parse("http://" + envAddr); err == nil {
 			if _, err := url.Parse(envBaseURL); err == nil {
 				return &Options{
 					Addr:        envAddr,
 					BaseURL:     envBaseURL,
-					StorageFile: path,
+					StorageFile: envStorageFile,
 				}, nil
 			}
 		}
@@ -58,11 +51,10 @@ func newOpts() (*Options, error) {
 		*baseURL = "http://" + *baseURL
 	}
 	*baseURL = strings.TrimSuffix(*baseURL, "/")
-	path := getStoragePath(*storageFile)
 	return &Options{
 		Addr:        *addr,
 		BaseURL:     *baseURL,
-		StorageFile: path,
+		StorageFile: *storageFile,
 	}, nil
 }
 
