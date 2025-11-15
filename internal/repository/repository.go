@@ -116,5 +116,8 @@ func (fs *FileStorage) loadFromFile() error {
 }
 
 func (fs *FileStorage) Ping() error {
+	if fs.db == nil {
+		return fmt.Errorf("db is not init")
+	}
 	return fs.db.Ping()
 }

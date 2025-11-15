@@ -5,7 +5,7 @@ build:
 
 test: build
 	TEMP_FILE=$$(mktemp) && \
-	~/Desktop/shortenertest -test.v -test.run=^TestIteration9$$ \
+	~/Desktop/shortenertest -test.v -test.run=^TestIteration10$$ \
 	-binary-path=cmd/shortener/shortener \
 	-source-path=. \
 	-file-storage-path=$$TEMP_FILE
