@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -16,6 +17,7 @@ import (
 type Repository interface {
 	Get(hash string) (string, error)
 	Set(url, hash string) error
+	Ping() error
 }
 
 type URLRecord struct {
@@ -28,12 +30,14 @@ type FileStorage struct {
 	cfg *config.Config
 	s   []URLRecord
 	mu  sync.RWMutex
+	db  *sql.DB
 }
 
-func NewStorage(cfg *config.Config) (Repository, error) {
+func NewStorage(cfg *config.Config, db  *sql.DB) (Repository, error) {
 
 	fs := &FileStorage{
 		cfg: cfg,
+		db: db,
 	}
 
 	err := fs.loadFromFile()
@@ -109,4 +113,8 @@ func (fs *FileStorage) loadFromFile() error {
 	}
 
 	return nil
+}
+
+func (fs *FileStorage) Ping() error {
+	return fs.db.Ping()
 }

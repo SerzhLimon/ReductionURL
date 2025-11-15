@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"encoding/json"
 	"io"
 	"log"
@@ -14,8 +15,8 @@ import (
 	uc "github.com/SerzhLimon/ReductionURL/internal/service"
 )
 
-func NewServer(cfg *config.Config) (*Server, error) {
-	uc, err := uc.NewService(cfg)
+func NewServer(cfg *config.Config, db *sql.DB) (*Server, error) {
+	uc, err := uc.NewService(cfg, db)
 	if err != nil {
 		return nil, err
 	}
@@ -136,4 +137,18 @@ func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusCreated)
 	res.Write(response)
+}
+
+func (s *Server) Ping(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(res, "method must be Get", http.StatusBadRequest)
+		return
+	}
+
+	status := http.StatusOK
+	err := s.uc.Ping()
+	if err != nil {
+		status = http.StatusInternalServerError
+	}
+	res.WriteHeader(status)
 }

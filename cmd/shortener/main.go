@@ -4,6 +4,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
+	"github.com/SerzhLimon/ReductionURL/internal/config/db"
 	"github.com/SerzhLimon/ReductionURL/internal/server"
 )
 
@@ -12,7 +13,11 @@ func main() {
 	if err != nil {
 		logrus.Fatalln(err)
 	}
-	s, err := server.NewServer(cfg)
+	psql, _ := db.InitPostgresClient(cfg)
+	// if err != nil {
+	// 	logrus.Fatalln(err)
+	// }
+	s, err := server.NewServer(cfg, psql)
 	if err != nil {
 		logrus.Fatalln(err)
 	}

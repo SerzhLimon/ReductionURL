@@ -2,6 +2,7 @@ package service
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -12,14 +13,15 @@ import (
 type UseCase interface {
 	SetURL(url string) (string, error)
 	GetURL(hash string) (string, error)
+	Ping() error
 }
 
 type Service struct {
 	repo repo.Repository
 }
 
-func NewService(cfg *config.Config) (UseCase, error) {
-	repo, err := repo.NewStorage(cfg)
+func NewService(cfg *config.Config, db *sql.DB) (UseCase, error) {
+	repo, err := repo.NewStorage(cfg, db)
 	if err != nil {
 		return nil, err
 	}
@@ -47,4 +49,8 @@ func (s *Service) GetURL(hash string) (string, error) {
 		return "", fmt.Errorf("incorrect id")
 	}
 	return s.repo.Get(hash)
+}
+
+func (s *Service) Ping() error {
+	return s.repo.Ping()
 }
