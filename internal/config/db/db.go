@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"

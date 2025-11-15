@@ -35,6 +35,7 @@ func (s *Server) route() {
 	s.core.Post("/", s.SetURL)
 	s.core.Post("/api/shorten", s.SetURLJson)
 	s.core.Get("/{id}", s.GetURL)
+	s.core.Get("/ping", s.Ping)
 }
 
 func (s *Server) Run() {
