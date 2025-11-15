@@ -40,7 +40,7 @@ func newOpts() (*Options, error) {
 		storageFileValue = envStorageFile
 	}
 
-	dataBaseHost := "postgres:5432"
+	dataBaseHost := "localhost:5432"
 	if envPsqlHost != "" {
 		dataBaseHost = envPsqlHost
 	}
