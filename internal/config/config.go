@@ -40,20 +40,17 @@ func newOpts() (*Options, error) {
 		storageFileValue = envStorageFile
 	}
 
-	dataBaseHost := "localhost:5432"
-	if envPsqlHost != "" {
-		dataBaseHost = envPsqlHost
-	}
-
 	if envAddr != "" && envBaseURL != "" {
 		if _, err := url.Parse("http://" + envAddr); err == nil {
-			if _, err := url.Parse(envBaseURL); err == nil {
-				return &Options{
-					Addr:         envAddr,
-					BaseURL:      envBaseURL,
-					StorageFile:  storageFileValue,
-					DataBaseHost: dataBaseHost,
-				}, nil
+			if _, err := url.Parse(envBaseURL); err == nil { 
+				if _, err := url.Parse(envPsqlHost); err == nil { 
+					return &Options{
+						Addr:         envAddr,
+						BaseURL:      envBaseURL,
+						StorageFile:  storageFileValue,
+						DataBaseHost: envPsqlHost,
+					}, nil
+				}
 			}
 		}
 	}
@@ -73,13 +70,20 @@ func newOpts() (*Options, error) {
 	if envBaseURL != "" {
 		baseURLValue = envBaseURL
 	}
-
+	dataBaseHost := *psqlHost
+	if envPsqlHost != "" {
+		dataBaseHost = envPsqlHost
+	}
 	if _, err := url.Parse("https://" + addrValue); err != nil {
 		return nil, fmt.Errorf("incorrect parametr `-a` %s", addrValue)
 	}
 
 	if _, err := url.Parse("https://" + baseURLValue); err != nil {
 		return nil, fmt.Errorf("incorrect parametr `-b` %s", baseURLValue)
+	}
+
+	if _, err := url.Parse("https://" + dataBaseHost); err != nil {
+		return nil, fmt.Errorf("incorrect parametr `-d` %s", dataBaseHost)
 	}
 
 	if !strings.HasPrefix(baseURLValue, "http://") && !strings.HasPrefix(baseURLValue, "https://") {
