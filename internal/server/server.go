@@ -12,8 +12,15 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
+	"github.com/SerzhLimon/ReductionURL/internal/model"
 	uc "github.com/SerzhLimon/ReductionURL/internal/service"
 )
+
+type Server struct {
+	cfg  *config.Config
+	core *chi.Mux
+	uc   uc.UseCase
+}
 
 func NewServer(cfg *config.Config, db *sql.DB) (*Server, error) {
 	uc, err := uc.NewService(cfg, db)
@@ -112,7 +119,7 @@ func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
-	var request SetURLJsonRequest
+	var request model.SetURLJsonRequest
 	if err = json.Unmarshal(body, &request); err != nil {
 		logrus.Errorln(err)
 		http.Error(res, "cannot unmarshal body", http.StatusBadRequest)
@@ -125,7 +132,7 @@ func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-	hashJSON := SetURLJsonResponse{
+	hashJSON := model.SetURLJsonResponse{
 		URL: s.cfg.Opts.BaseURL + "/" + hash,
 	}
 
@@ -152,4 +159,48 @@ func (s *Server) Ping(res http.ResponseWriter, req *http.Request) {
 		status = http.StatusInternalServerError
 	}
 	res.WriteHeader(status)
+}
+
+func (s *Server) SetArrayURLJson(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(res, "method must be POST", http.StatusBadRequest)
+		return
+	}
+
+	contentType := req.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		http.Error(res, "Content-Type must be application/json", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(res, "cannot read body", http.StatusBadRequest)
+		return
+	}
+	defer req.Body.Close()
+
+	var request []model.SetArrayURLRequest
+	if err = json.Unmarshal(body, &request); err != nil {
+		logrus.Errorln(err)
+		http.Error(res, "cannot unmarshal body", http.StatusBadRequest)
+		return
+	}
+
+	result, err := s.uc.SetArrayURL(request)
+	if err != nil {
+		logrus.Errorln(err)
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response, err := json.Marshal(result)
+	if err != nil {
+		logrus.Errorln(err)
+		http.Error(res, "cannot marshal body", http.StatusBadRequest)
+		return
+	}
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+	res.Write(response)
 }

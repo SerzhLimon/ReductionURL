@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
+	"github.com/SerzhLimon/ReductionURL/internal/model"
 	repo "github.com/SerzhLimon/ReductionURL/internal/repository"
 )
 
@@ -14,6 +15,7 @@ type UseCase interface {
 	SetURL(url string) (string, error)
 	GetURL(hash string) (string, error)
 	Ping() error
+	SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error)
 }
 
 type Service struct {
@@ -53,4 +55,16 @@ func (s *Service) GetURL(hash string) (string, error) {
 
 func (s *Service) Ping() error {
 	return s.repo.Ping()
+}
+
+func (s *Service) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
+	for i, item := range req {
+		item.OriginalURL = strings.TrimSpace(item.OriginalURL)
+		if item.OriginalURL == "" {
+			return nil, fmt.Errorf("incorrect url")
+		}
+		hash := sha256.Sum256([]byte(item.OriginalURL))
+		req[i].ShortURL = fmt.Sprintf("%x", hash[:8])
+	}
+	return s.repo.SetArrayURL(req)
 }

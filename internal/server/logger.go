@@ -7,6 +7,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	responseData *responseData
+}
+
+type responseData struct {
+	status int
+	size   int
+}
+
 func handLogger(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -14,12 +15,14 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
+	"github.com/SerzhLimon/ReductionURL/internal/model"
 )
 
 type Repository interface {
 	Get(hash string) (string, error)
 	Set(url, hash string) error
 	Ping() error
+	SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error)
 }
 
 type URLRecord struct {
@@ -54,23 +57,23 @@ func NewStorage(cfg *config.Config, db *sql.DB) (Repository, error) {
 }
 
 func (s *Storage) Get(hash string) (string, error) {
-    if s.db != nil {
-        return s.getPsql(hash)         
-    }
-    if s.hasFile {
-        return s.getFromFile(hash)     
-    }
-    return s.getMemory(hash)            
+	if s.db != nil {
+		return s.getPsql(hash)
+	}
+	if s.hasFile {
+		return s.getFromFile(hash)
+	}
+	return s.getMemory(hash)
 }
 
 func (s *Storage) Set(url, hash string) error {
-    if s.db != nil {
-        return s.setPsql(url, hash)    
-    }
-    if s.hasFile {
-        return s.setInFile(url, hash)  
-    }
-    return s.setMemory(url, hash)       
+	if s.db != nil {
+		return s.setPsql(url, hash)
+	}
+	if s.hasFile {
+		return s.setInFile(url, hash)
+	}
+	return s.setMemory(url, hash)
 }
 
 func (s *Storage) saveToFile() error {
@@ -147,15 +150,21 @@ func (s *Storage) getPsql(hash string) (string, error) {
 }
 
 func (s *Storage) setInFile(url, hash string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.s = append(s.s, URLRecord{
-		UUID:        strconv.Itoa(len(s.s)),
-		ShortURL:    hash,
-		OriginalURL: url,
-	})
-	return s.saveToFile()
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    
+    if _, exists := lo.Find(s.s, func(record URLRecord) bool {
+        return record.OriginalURL == url
+    }); exists {
+        return nil
+    }
+    
+    s.s = append(s.s, URLRecord{
+        UUID:        strconv.Itoa(len(s.s)),
+        ShortURL:    hash,
+        OriginalURL: url,
+    })
+    return s.saveToFile()
 }
 
 func (s *Storage) getFromFile(hash string) (string, error) {
@@ -189,4 +198,89 @@ func (s *Storage) setMemory(url, hash string) error {
 
 	s.memoryCache[hash] = url
 	return nil
+}
+
+func (s *Storage) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
+	if s.db != nil {
+		return s.setArrayPsql(req)
+	}
+	if s.hasFile {
+		return s.setArrayInFile(req)
+	}
+	return s.setArrayMemory(req)
+}
+
+func (s *Storage) setArrayPsql(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
+	tx, err := s.db.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	resp := []model.SetArrayURLResponse{}
+	for _, item := range req {
+		_, err := tx.Exec(querySetURL, item.OriginalURL, item.ShortURL)
+		if err != nil {
+			return nil, err
+		}
+		resp = append(resp, model.SetArrayURLResponse{
+			ID:  item.ID,
+			// URL: item.ShortURL,
+			URL: s.cfg.Opts.BaseURL + "/" + item.ShortURL,
+		})
+	}
+	if err := tx.Commit(); err != nil {
+        return nil, err
+    }
+	return resp, nil
+}
+
+func (s *Storage) setArrayInFile(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    
+    resp := []model.SetArrayURLResponse{}
+    
+    for _, item := range req {
+        if existingRecord, exists := lo.Find(s.s, func(record URLRecord) bool {
+            return record.OriginalURL == item.OriginalURL
+        }); exists {
+            resp = append(resp, model.SetArrayURLResponse{
+                ID:  item.ID,
+                URL: existingRecord.ShortURL,
+            })
+        } else {
+            newRecord := URLRecord{
+                UUID:        strconv.Itoa(len(s.s)),
+                ShortURL:    item.ShortURL,
+                OriginalURL: item.OriginalURL,
+            }
+            s.s = append(s.s, newRecord)
+            resp = append(resp, model.SetArrayURLResponse{
+                ID:  item.ID,
+                URL: item.ShortURL,
+            })
+        }
+    }
+    
+    if err := s.saveToFile(); err != nil {
+        return nil, err
+    }
+    
+    return resp, nil
+}
+
+func (s *Storage) setArrayMemory(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
+	resp := []model.SetArrayURLResponse{}
+	for _, item := range req {
+		err := s.setMemory(item.OriginalURL, item.ShortURL)
+		if err != nil {
+			return resp, err
+		}
+		resp = append(resp, model.SetArrayURLResponse{
+			ID:  item.ID,
+			URL: item.ShortURL,
+		})
+	}
+	return resp, nil
 }
