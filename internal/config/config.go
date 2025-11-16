@@ -36,7 +36,7 @@ func newOpts() (*Options, error) {
 	}
 	var addr = flag.String("a", "localhost:8080", "server host")
 	var baseURL = flag.String("b", "localhost:8080", "value before short URL")
-	var storageFile = flag.String("f", "storage.json", "file for save data")
+	var storageFile = flag.String("f", "", "file for save data")
 	var psqlHost = flag.String("d", "", "psql data")
 	flag.Parse()
 
@@ -46,7 +46,7 @@ func newOpts() (*Options, error) {
 	if opts.BaseURL == "" {
 		opts.BaseURL = *baseURL
 	}
-	if opts.StorageFile == "storage.json" {
+	if opts.StorageFile == "" {
 		opts.StorageFile = *storageFile
 	}
 	if opts.DataBaseHost == "" {
@@ -79,7 +79,6 @@ func parseEnv() (*Options, bool) {
 	envPsqlDsn := os.Getenv("DATABASE_DSN")
 
 	opts := &Options{
-		StorageFile: "storage.json",
 	}
 	if envStorageFile != "" {
 		opts.StorageFile = envStorageFile

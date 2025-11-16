@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
 )
@@ -28,17 +29,21 @@ type URLRecord struct {
 }
 
 type Storage struct {
-	cfg *config.Config
-	s   []URLRecord
-	mu  sync.RWMutex
-	db  *sql.DB
+	cfg         *config.Config
+	s           []URLRecord
+	mu          sync.RWMutex
+	db          *sql.DB
+	memoryCache map[string]string
+	hasFile     bool
 }
 
 func NewStorage(cfg *config.Config, db *sql.DB) (Repository, error) {
 
 	s := &Storage{
-		cfg: cfg,
-		db:  db,
+		cfg:         cfg,
+		db:          db,
+		memoryCache: make(map[string]string),
+		hasFile:     cfg.Opts.StorageFile != "",
 	}
 
 	err := s.loadFromFile()
@@ -51,15 +56,19 @@ func NewStorage(cfg *config.Config, db *sql.DB) (Repository, error) {
 func (s *Storage) Get(hash string) (string, error) {
 	if s.db == nil {
 		return s.getFromFile(hash)
+	} else if s.hasFile {
+		return s.getPsql(hash)
 	}
-	return s.getPsql(hash)
+	return s.getMemory(hash)
 }
 
 func (s *Storage) Set(url, hash string) error {
 	if s.db == nil {
 		return s.setInFile(url, hash)
+	} else if s.hasFile {
+		return s.setPsql(url, hash)
 	}
-	return s.setPsql(url, hash)
+	return s.setMemory(url, hash)
 }
 
 func (s *Storage) saveToFile() error {
@@ -84,8 +93,12 @@ func (s *Storage) loadFromFile() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if !s.hasFile {
+		return nil
+	}
+	
 	if _, err := os.Stat(s.cfg.Opts.StorageFile); os.IsNotExist(err) {
-		fmt.Println("File does not exist")
+		logrus.Warn("File does not exist")
 		return nil
 	}
 
@@ -119,7 +132,7 @@ func (s *Storage) setPsql(url, hash string) error {
 
 func (s *Storage) getPsql(hash string) (string, error) {
 	var originalURL string
-	err := s.db.QueryRow(queryGetURL,hash,).Scan(&originalURL)
+	err := s.db.QueryRow(queryGetURL, hash).Scan(&originalURL)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -155,4 +168,23 @@ func (s *Storage) getFromFile(hash string) (string, error) {
 	}
 
 	return item.OriginalURL, nil
+}
+
+func (s *Storage) getMemory(hash string) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	url, exist := s.memoryCache[hash]
+	if !exist {
+		return "", fmt.Errorf("%s not found", hash)
+	}
+	return url, nil
+}
+
+func (s *Storage) setMemory(url, hash string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.memoryCache[hash] = url
+	return nil
 }
