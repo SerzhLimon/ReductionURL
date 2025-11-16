@@ -54,21 +54,23 @@ func NewStorage(cfg *config.Config, db *sql.DB) (Repository, error) {
 }
 
 func (s *Storage) Get(hash string) (string, error) {
-	if s.db == nil {
-		return s.getFromFile(hash)
-	} else if s.hasFile {
-		return s.getPsql(hash)
-	}
-	return s.getMemory(hash)
+    if s.db != nil {
+        return s.getPsql(hash)         
+    }
+    if s.hasFile {
+        return s.getFromFile(hash)     
+    }
+    return s.getMemory(hash)            
 }
 
 func (s *Storage) Set(url, hash string) error {
-	if s.db == nil {
-		return s.setInFile(url, hash)
-	} else if s.hasFile {
-		return s.setPsql(url, hash)
-	}
-	return s.setMemory(url, hash)
+    if s.db != nil {
+        return s.setPsql(url, hash)    
+    }
+    if s.hasFile {
+        return s.setInFile(url, hash)  
+    }
+    return s.setMemory(url, hash)       
 }
 
 func (s *Storage) saveToFile() error {
@@ -96,7 +98,7 @@ func (s *Storage) loadFromFile() error {
 	if !s.hasFile {
 		return nil
 	}
-	
+
 	if _, err := os.Stat(s.cfg.Opts.StorageFile); os.IsNotExist(err) {
 		logrus.Warn("File does not exist")
 		return nil
