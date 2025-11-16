@@ -58,7 +58,7 @@ func newOpts() (*Options, error) {
 	var addr = flag.String("a", "localhost:8080", "server host")
 	var baseURL = flag.String("b", "localhost:8080", "value before short URL")
 	var storageFile = flag.String("f", "storage.json", "file for save data")
-	var psqlHost = flag.String("d", "localhost:5432", "psql host")
+	var psqlHost = flag.String("d", "", "psql data")
 	flag.Parse()
 
 	addrValue := *addr
@@ -70,6 +70,7 @@ func newOpts() (*Options, error) {
 	if envBaseURL != "" {
 		baseURLValue = envBaseURL
 	}
+	
 	dataBaseHost := *psqlHost
 	if envPsqlHost != "" {
 		dataBaseHost = envPsqlHost
