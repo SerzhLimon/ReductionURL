@@ -30,7 +30,6 @@ func NewConfig() (*Config, error) {
 }
 
 func newOpts() (*Options, error) {
-
 	opts, ok := parseEnv()
 	if ok {
 		return opts, nil
@@ -41,19 +40,15 @@ func newOpts() (*Options, error) {
 	var psqlHost = flag.String("d", "", "psql data")
 	flag.Parse()
 
-	
 	if opts.Addr == "" {
 		opts.Addr = *addr
 	}
-
-	// baseURLValue := *baseURL
 	if opts.BaseURL == "" {
 		opts.BaseURL = *baseURL
 	}
 	if opts.StorageFile == "storage.json" {
 		opts.StorageFile = *storageFile
 	}
-	// dataBaseHost := *psqlHost
 	if opts.DataBaseHost == "" {
 		opts.DataBaseHost = *psqlHost
 	}
@@ -73,18 +68,6 @@ func newOpts() (*Options, error) {
 		opts.BaseURL = "http://" + opts.BaseURL
 	}
 	opts.BaseURL = strings.TrimSuffix(opts.BaseURL, "/")
-
-	// if envStorageFile != "" {
-	// 	storageFileValue = envStorageFile
-	// } else {
-	// 	storageFileValue = *storageFile
-	// }
-
-	// if envPsqlHost != "" {
-	// 	dataBaseHost = envPsqlHost
-	// } else {
-	// 	dataBaseHost = *psqlHost
-	// }
 
 	return opts, nil
 }
@@ -113,18 +96,4 @@ func parseEnv() (*Options, bool) {
 
 	sucessAll := opts.Addr != "" && opts.BaseURL != "" && opts.DataBaseHost != ""
 	return opts, sucessAll
-	// if envAddr != "" && envBaseURL != "" {
-	// 	if _, err := url.Parse("http://" + envAddr); err == nil {
-	// 		if _, err := url.Parse(envBaseURL); err == nil { 
-	// 			if _, err := url.Parse(envPsqlHost); err == nil { 
-	// 				return &Options{
-	// 					Addr:         envAddr,
-	// 					BaseURL:      envBaseURL,
-	// 					StorageFile:  storageFileValue,
-	// 					DataBaseHost: envPsqlHost,
-	// 				}, nil
-	// 			}
-	// 		}
-	// 	}
-	// }
 }
