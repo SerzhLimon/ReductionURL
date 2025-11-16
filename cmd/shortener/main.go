@@ -19,7 +19,7 @@ func main() {
 	logrus.Info("Running migrations...")
 	err = migrations.Up(psql)
 	if err != nil {
-		logrus.WithError(err).Fatal("Failed to apply migrations")
+		logrus.Warn(err)
 	}
 	defer func() {
 		migrations.Down(psql)
