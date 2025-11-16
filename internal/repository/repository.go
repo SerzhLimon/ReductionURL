@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,80 +27,69 @@ type URLRecord struct {
 	OriginalURL string `json:"original_url"`
 }
 
-type FileStorage struct {
+type Storage struct {
 	cfg *config.Config
 	s   []URLRecord
 	mu  sync.RWMutex
 	db  *sql.DB
 }
 
-func NewStorage(cfg *config.Config, db  *sql.DB) (Repository, error) {
+func NewStorage(cfg *config.Config, db *sql.DB) (Repository, error) {
 
-	fs := &FileStorage{
+	s := &Storage{
 		cfg: cfg,
-		db: db,
+		db:  db,
 	}
 
-	err := fs.loadFromFile()
+	err := s.loadFromFile()
 	if err != nil {
 		return nil, err
 	}
-	return fs, nil
+	return s, nil
 }
 
-func (fs *FileStorage) Get(hash string) (string, error) {
-	fs.mu.RLock()
-	defer fs.mu.RUnlock()
-
-	item, exist := lo.Find(fs.s, func(item URLRecord) bool {
-		return item.ShortURL == hash
-	})
-	if !exist {
-		return "", fmt.Errorf("%s not found", hash)
+func (s *Storage) Get(hash string) (string, error) {
+	if s.db == nil {
+		return s.getFromFile(hash)
 	}
-
-	return item.OriginalURL, nil
+	return s.getPsql(hash)
 }
 
-func (fs *FileStorage) Set(url, hash string) error {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
-	fs.s = append(fs.s, URLRecord{
-		UUID:        strconv.Itoa(len(fs.s)),
-		ShortURL:    hash,
-		OriginalURL: url,
-	})
-	return fs.saveToFile()
+func (s *Storage) Set(url, hash string) error {
+	if s.db == nil {
+		return s.setInFile(url, hash)
+	}
+	return s.setPsql(url, hash)
 }
-func (fs *FileStorage) saveToFile() error {
-	dir := filepath.Dir(fs.cfg.Opts.StorageFile)
+
+func (s *Storage) saveToFile() error {
+	dir := filepath.Dir(s.cfg.Opts.StorageFile)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	data, err := json.MarshalIndent(fs.s, "", "  ")
+	data, err := json.MarshalIndent(s.s, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	if err := os.WriteFile(fs.cfg.Opts.StorageFile, data, 0644); err != nil {
+	if err := os.WriteFile(s.cfg.Opts.StorageFile, data, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
 	return nil
 }
 
-func (fs *FileStorage) loadFromFile() error {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
+func (s *Storage) loadFromFile() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	if _, err := os.Stat(fs.cfg.Opts.StorageFile); os.IsNotExist(err) {
+	if _, err := os.Stat(s.cfg.Opts.StorageFile); os.IsNotExist(err) {
 		fmt.Println("File does not exist")
 		return nil
 	}
 
-	data, err := os.ReadFile(fs.cfg.Opts.StorageFile)
+	data, err := os.ReadFile(s.cfg.Opts.StorageFile)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
@@ -108,16 +98,61 @@ func (fs *FileStorage) loadFromFile() error {
 		return nil
 	}
 
-	if err := json.Unmarshal(data, &fs.s); err != nil {
+	if err := json.Unmarshal(data, &s.s); err != nil {
 		return fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
 
 	return nil
 }
 
-func (fs *FileStorage) Ping() error {
-	if fs.db == nil {
+func (s *Storage) Ping() error {
+	if s.db == nil {
 		return fmt.Errorf("db is not init")
 	}
-	return fs.db.Ping()
+	return s.db.Ping()
+}
+
+func (s *Storage) setPsql(url, hash string) error {
+	_, err := s.db.Exec(querySetURL, url, hash)
+	return err
+}
+
+func (s *Storage) getPsql(hash string) (string, error) {
+	var originalURL string
+	err := s.db.QueryRow(queryGetURL,hash,).Scan(&originalURL)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", fmt.Errorf("URL not found")
+		}
+		return "", fmt.Errorf("database error: %w", err)
+	}
+
+	return originalURL, nil
+}
+
+func (s *Storage) setInFile(url, hash string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.s = append(s.s, URLRecord{
+		UUID:        strconv.Itoa(len(s.s)),
+		ShortURL:    hash,
+		OriginalURL: url,
+	})
+	return s.saveToFile()
+}
+
+func (s *Storage) getFromFile(hash string) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	item, exist := lo.Find(s.s, func(item URLRecord) bool {
+		return item.ShortURL == hash
+	})
+	if !exist {
+		return "", fmt.Errorf("%s not found", hash)
+	}
+
+	return item.OriginalURL, nil
 }

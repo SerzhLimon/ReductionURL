@@ -87,10 +87,10 @@ func parseEnv() (*Options, bool) {
 	if _, err := url.Parse("http://" + envAddr); err == nil {
 		opts.Addr = envAddr
 	}
-	if _, err := url.Parse(envBaseURL); err == nil { 
+	if _, err := url.Parse(envBaseURL); err == nil {
 		opts.BaseURL = envBaseURL
 	}
-	if _, err := url.Parse(envPsqlDsn); err == nil { 
+	if _, err := url.Parse(envPsqlDsn); err == nil {
 		opts.DataBaseHost = envPsqlDsn
 	}
 

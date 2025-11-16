@@ -1,6 +1,5 @@
 package server
 
-
 // // Mock для use case
 // type MockUseCase struct {
 // 	mock.Mock

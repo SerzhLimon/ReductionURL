@@ -18,7 +18,6 @@ func InitPostgresClient(cfg *config.Config) (*sql.DB, error) {
 	})
 	logrus.SetLevel(logrus.InfoLevel)
 
-
 	options, err := parseDSN(cfg.Opts.DataBaseHost)
 	if err != nil {
 		return nil, err
