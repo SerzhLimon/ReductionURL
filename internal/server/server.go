@@ -136,6 +136,16 @@ func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
 
 	hash, err := s.uc.SetURL(request.URL)
 	if err != nil {
+		if errors.Is(err, model.ErrURLAlreadyExists) {
+			hashJSON := model.SetURLJsonResponse{
+				URL: s.cfg.Opts.BaseURL + "/" + hash,
+			}
+			response, _ := json.Marshal(hashJSON)
+			res.Header().Set("Content-Type", "application/json")
+			res.WriteHeader(http.StatusConflict)
+			res.Write(response)
+			return
+		}
 		logrus.Errorln(err)
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return

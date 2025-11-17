@@ -131,18 +131,22 @@ func (s *Storage) Ping() error {
 }
 
 func (s *Storage) setPsql(url, hash string) (string, error) {
-    var existingShortURL string
-    err := s.db.QueryRow(querySetURL, url, hash).Scan(&existingShortURL)
-    
-    if err != nil {
-        return "", err
-    }
-    
-    if existingShortURL != hash {
-        return existingShortURL, model.ErrURLAlreadyExists
-    }
-    
-    return "", nil
+	result, err := s.db.Exec(querySetURL, url, hash)
+
+	if err != nil {
+		return "", err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return "", err
+	}
+
+	if rowsAffected == 0 {
+		return hash, model.ErrURLAlreadyExists
+	}
+
+	return "", nil
 }
 
 func (s *Storage) getPsql(hash string) (string, error) {
@@ -160,23 +164,23 @@ func (s *Storage) getPsql(hash string) (string, error) {
 }
 
 func (s *Storage) setInFile(url, hash string) (string, error) {
-    s.mu.Lock()
-    defer s.mu.Unlock()
-    
-    if _, exists := lo.Find(s.s, func(record URLRecord) bool {
-        return record.OriginalURL == url
-    }); exists {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, exists := lo.Find(s.s, func(record URLRecord) bool {
+		return record.OriginalURL == url
+	}); exists {
 		existingShortURL, _ := s.getFromFile(hash)
-        return existingShortURL, model.ErrURLAlreadyExists
-    }
-    
-    s.s = append(s.s, URLRecord{
-        UUID:        strconv.Itoa(len(s.s)),
-        ShortURL:    hash,
-        OriginalURL: url,
-    })
+		return existingShortURL, model.ErrURLAlreadyExists
+	}
+
+	s.s = append(s.s, URLRecord{
+		UUID:        strconv.Itoa(len(s.s)),
+		ShortURL:    hash,
+		OriginalURL: url,
+	})
 	err := s.saveToFile()
-    return "", err
+	return "", err
 }
 
 func (s *Storage) getFromFile(hash string) (string, error) {
@@ -210,7 +214,7 @@ func (s *Storage) setMemory(url, hash string) (string, error) {
 
 	if _, exist := s.memoryCache[hash]; exist {
 		existingShortURL, _ := s.getMemory(hash)
-        return existingShortURL, model.ErrURLAlreadyExists
+		return existingShortURL, model.ErrURLAlreadyExists
 	}
 
 	s.memoryCache[hash] = url
@@ -246,44 +250,44 @@ func (s *Storage) setArrayPsql(req []model.SetArrayURLRequest) ([]model.SetArray
 		})
 	}
 	if err := tx.Commit(); err != nil {
-        return nil, err
-    }
+		return nil, err
+	}
 	return resp, nil
 }
 
 func (s *Storage) setArrayInFile(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
-    s.mu.Lock()
-    defer s.mu.Unlock()
-    
-    resp := []model.SetArrayURLResponse{}
-    
-    for _, item := range req {
-        if existingRecord, exists := lo.Find(s.s, func(record URLRecord) bool {
-            return record.OriginalURL == item.OriginalURL
-        }); exists {
-            resp = append(resp, model.SetArrayURLResponse{
-                ID:  item.ID,
-                URL: existingRecord.ShortURL,
-            })
-        } else {
-            newRecord := URLRecord{
-                UUID:        strconv.Itoa(len(s.s)),
-                ShortURL:    item.ShortURL,
-                OriginalURL: item.OriginalURL,
-            }
-            s.s = append(s.s, newRecord)
-            resp = append(resp, model.SetArrayURLResponse{
-                ID:  item.ID,
-                URL: item.ShortURL,
-            })
-        }
-    }
-    
-    if err := s.saveToFile(); err != nil {
-        return nil, err
-    }
-    
-    return resp, nil
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	resp := []model.SetArrayURLResponse{}
+
+	for _, item := range req {
+		if existingRecord, exists := lo.Find(s.s, func(record URLRecord) bool {
+			return record.OriginalURL == item.OriginalURL
+		}); exists {
+			resp = append(resp, model.SetArrayURLResponse{
+				ID:  item.ID,
+				URL: existingRecord.ShortURL,
+			})
+		} else {
+			newRecord := URLRecord{
+				UUID:        strconv.Itoa(len(s.s)),
+				ShortURL:    item.ShortURL,
+				OriginalURL: item.OriginalURL,
+			}
+			s.s = append(s.s, newRecord)
+			resp = append(resp, model.SetArrayURLResponse{
+				ID:  item.ID,
+				URL: item.ShortURL,
+			})
+		}
+	}
+
+	if err := s.saveToFile(); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (s *Storage) setArrayMemory(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {

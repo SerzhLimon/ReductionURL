@@ -3,9 +3,9 @@ package repository
 const (
 	querySetURL = `
         INSERT INTO reductionurl (originalURL, shortURL) 
-        VALUES ($1, $2) 
-        ON CONFLICT (originalURL) DO UPDATE SET originalURL = EXCLUDED.originalURL
-        RETURNING shortURL
+        VALUES ($1, $2)
+        ON CONFLICT (originalURL) 
+        DO NOTHING
     `
 	queryGetURL = `
 		SELECT originalURL
