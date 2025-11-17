@@ -78,8 +78,7 @@ func parseEnv() (*Options, bool) {
 	envStorageFile := os.Getenv("FILE_STORAGE_PATH")
 	envPsqlDsn := os.Getenv("DATABASE_DSN")
 
-	opts := &Options{
-	}
+	opts := &Options{}
 	if envStorageFile != "" {
 		opts.StorageFile = envStorageFile
 	}

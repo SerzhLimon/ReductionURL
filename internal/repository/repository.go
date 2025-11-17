@@ -131,22 +131,22 @@ func (s *Storage) Ping() error {
 }
 
 func (s *Storage) setPsql(url, hash string) (string, error) {
-    result, err := s.db.Exec(querySetURL, url, hash)
+	result, err := s.db.Exec(querySetURL, url, hash)
 
-    if err != nil {
-        return "", err
-    }
+	if err != nil {
+		return "", err
+	}
 
-    rowsAffected, err := result.RowsAffected()
-    if err != nil {
-        return "", err
-    }
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return "", err
+	}
 
-    if rowsAffected == 0 {
-        return hash, model.ErrURLAlreadyExists
-    }
+	if rowsAffected == 0 {
+		return hash, model.ErrURLAlreadyExists
+	}
 
-    return hash, nil
+	return hash, nil
 }
 
 func (s *Storage) getPsql(hash string) (string, error) {
