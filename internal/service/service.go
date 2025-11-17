@@ -40,7 +40,7 @@ func (s *Service) SetURL(url string) (string, error) {
 
 	hash := sha256.Sum256([]byte(url))
 	shortHash := fmt.Sprintf("%x", hash[:8])
-	err := s.repo.Set(url, shortHash)
+	shortHash, err := s.repo.Set(url, shortHash)
 
 	return shortHash, err
 }

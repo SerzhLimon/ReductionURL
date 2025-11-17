@@ -3,6 +3,7 @@ package server
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -74,6 +75,12 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 
 	hash, err := s.uc.SetURL(string(body))
 	if err != nil {
+		if errors.Is(err, model.ErrURLAlreadyExists) {
+			res.Header().Set("Content-Type", "text/plain")
+			res.WriteHeader(http.StatusConflict)
+			res.Write([]byte(s.cfg.Opts.BaseURL + "/" + hash))
+			return
+		}
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}

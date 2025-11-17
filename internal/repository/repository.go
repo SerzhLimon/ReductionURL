@@ -20,7 +20,7 @@ import (
 
 type Repository interface {
 	Get(hash string) (string, error)
-	Set(url, hash string) error
+	Set(url, hash string) (string, error)
 	Ping() error
 	SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error)
 }
@@ -66,7 +66,7 @@ func (s *Storage) Get(hash string) (string, error) {
 	return s.getMemory(hash)
 }
 
-func (s *Storage) Set(url, hash string) error {
+func (s *Storage) Set(url, hash string) (string, error) {
 	if s.db != nil {
 		return s.setPsql(url, hash)
 	}
@@ -130,9 +130,19 @@ func (s *Storage) Ping() error {
 	return s.db.Ping()
 }
 
-func (s *Storage) setPsql(url, hash string) error {
-	_, err := s.db.Exec(querySetURL, url, hash)
-	return err
+func (s *Storage) setPsql(url, hash string) (string, error) {
+    var existingShortURL string
+    err := s.db.QueryRow(querySetURL, url, hash).Scan(&existingShortURL)
+    
+    if err != nil {
+        return "", err
+    }
+    
+    if existingShortURL != hash {
+        return existingShortURL, model.ErrURLAlreadyExists
+    }
+    
+    return "", nil
 }
 
 func (s *Storage) getPsql(hash string) (string, error) {
@@ -149,14 +159,15 @@ func (s *Storage) getPsql(hash string) (string, error) {
 	return originalURL, nil
 }
 
-func (s *Storage) setInFile(url, hash string) error {
+func (s *Storage) setInFile(url, hash string) (string, error) {
     s.mu.Lock()
     defer s.mu.Unlock()
     
     if _, exists := lo.Find(s.s, func(record URLRecord) bool {
         return record.OriginalURL == url
     }); exists {
-        return nil
+		existingShortURL, _ := s.getFromFile(hash)
+        return existingShortURL, model.ErrURLAlreadyExists
     }
     
     s.s = append(s.s, URLRecord{
@@ -164,7 +175,8 @@ func (s *Storage) setInFile(url, hash string) error {
         ShortURL:    hash,
         OriginalURL: url,
     })
-    return s.saveToFile()
+	err := s.saveToFile()
+    return "", err
 }
 
 func (s *Storage) getFromFile(hash string) (string, error) {
@@ -192,12 +204,17 @@ func (s *Storage) getMemory(hash string) (string, error) {
 	return url, nil
 }
 
-func (s *Storage) setMemory(url, hash string) error {
+func (s *Storage) setMemory(url, hash string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if _, exist := s.memoryCache[hash]; exist {
+		existingShortURL, _ := s.getMemory(hash)
+        return existingShortURL, model.ErrURLAlreadyExists
+	}
+
 	s.memoryCache[hash] = url
-	return nil
+	return "", nil
 }
 
 func (s *Storage) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
@@ -225,7 +242,6 @@ func (s *Storage) setArrayPsql(req []model.SetArrayURLRequest) ([]model.SetArray
 		}
 		resp = append(resp, model.SetArrayURLResponse{
 			ID:  item.ID,
-			// URL: item.ShortURL,
 			URL: s.cfg.Opts.BaseURL + "/" + item.ShortURL,
 		})
 	}
@@ -273,10 +289,7 @@ func (s *Storage) setArrayInFile(req []model.SetArrayURLRequest) ([]model.SetArr
 func (s *Storage) setArrayMemory(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
 	resp := []model.SetArrayURLResponse{}
 	for _, item := range req {
-		err := s.setMemory(item.OriginalURL, item.ShortURL)
-		if err != nil {
-			return resp, err
-		}
+		s.setMemory(item.OriginalURL, item.ShortURL)
 		resp = append(resp, model.SetArrayURLResponse{
 			ID:  item.ID,
 			URL: item.ShortURL,
