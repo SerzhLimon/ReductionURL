@@ -180,7 +180,7 @@ func (s *Storage) setInFile(url, hash string) (string, error) {
 		OriginalURL: url,
 	})
 	err := s.saveToFile()
-	return "", err
+	return hash, err
 }
 
 func (s *Storage) getFromFile(hash string) (string, error) {
@@ -218,7 +218,7 @@ func (s *Storage) setMemory(url, hash string) (string, error) {
 	}
 
 	s.memoryCache[hash] = url
-	return "", nil
+	return hash, nil
 }
 
 func (s *Storage) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
