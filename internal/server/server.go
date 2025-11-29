@@ -73,11 +73,6 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
-	url := string(body)
-
-	// Логируем полученный URL
-	logrus.WithField("url ---->", url).Info("URL received")
-
 	hash, err := s.uc.SetURL(string(body))
 	if err != nil {
 		if errors.Is(err, model.ErrURLAlreadyExists) {
@@ -89,8 +84,6 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	logrus.WithField("hash ---->", hash).Info("hash post")
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)

@@ -9,7 +9,6 @@ import (
 	"github.com/SerzhLimon/ReductionURL/internal/config"
 	"github.com/SerzhLimon/ReductionURL/internal/model"
 	repo "github.com/SerzhLimon/ReductionURL/internal/repository"
-	"github.com/sirupsen/logrus"
 )
 
 type UseCase interface {
@@ -41,8 +40,6 @@ func (s *Service) SetURL(url string) (string, error) {
 
 	hash := sha256.Sum256([]byte(url))
 	shortHash := fmt.Sprintf("%x", hash[:8])
-	logrus.WithField("---->", url).Info("url usecase ")
-	logrus.WithField("---->", shortHash).Info("shortHash usecase ")
 	shortHash, err := s.repo.Set(url, shortHash)
 
 	return shortHash, err
