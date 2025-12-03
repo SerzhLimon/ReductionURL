@@ -1,0 +1,94 @@
+package repository
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+
+	"github.com/SerzhLimon/ReductionURL/internal/config"
+	"github.com/SerzhLimon/ReductionURL/internal/model"
+)
+
+type PgStorage struct {
+	cfg *config.Config
+	db  *sql.DB
+}
+
+func NewPgStorage(cfg *config.Config, db *sql.DB) (Repository, error) {
+
+	s := &PgStorage{
+		cfg: cfg,
+		db:  db,
+	}
+
+	if db == nil {
+		return nil, fmt.Errorf("db not init")
+	}
+
+	return s, nil
+}
+
+func (s *PgStorage) Ping() error {
+	if s.db == nil {
+		return fmt.Errorf("db is not init")
+	}
+	return s.db.Ping()
+}
+
+func (s *PgStorage) Set(url, hash string) (string, error) {
+	result, err := s.db.Exec(querySetURL, url, hash)
+
+	if err != nil {
+		return "", err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return "", err
+	}
+
+	if rowsAffected == 0 {
+		return hash, model.ErrURLAlreadyExists
+	}
+
+	return hash, nil
+}
+
+func (s *PgStorage) Get(hash string) (string, error) {
+	var originalURL string
+	err := s.db.QueryRow(queryGetURL, hash).Scan(&originalURL)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", fmt.Errorf("URL not found")
+		}
+		return "", fmt.Errorf("database error: %w", err)
+	}
+
+	return originalURL, nil
+}
+
+func (s *PgStorage) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
+	tx, err := s.db.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	resp := []model.SetArrayURLResponse{}
+	for _, item := range req {
+		_, err := tx.Exec(querySetURL, item.OriginalURL, item.ShortURL)
+		if err != nil {
+			return nil, err
+		}
+		resp = append(resp, model.SetArrayURLResponse{
+			ID:  item.ID,
+			URL: s.cfg.Opts.BaseURL + "/" + item.ShortURL,
+		})
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}

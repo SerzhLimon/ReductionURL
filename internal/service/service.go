@@ -9,6 +9,7 @@ import (
 	"github.com/SerzhLimon/ReductionURL/internal/config"
 	"github.com/SerzhLimon/ReductionURL/internal/model"
 	repo "github.com/SerzhLimon/ReductionURL/internal/repository"
+	"github.com/sirupsen/logrus"
 )
 
 type UseCase interface {
@@ -19,16 +20,32 @@ type UseCase interface {
 }
 
 type Service struct {
-	repo repo.Repository
+	pgRepo   repo.Repository
+	fileRepo repo.Repository
+	memRepo  repo.Repository
 }
 
 func NewService(cfg *config.Config, db *sql.DB) (UseCase, error) {
-	repo, err := repo.NewStorage(cfg, db)
+	pgRepo, err := repo.NewPgStorage(cfg, db)
 	if err != nil {
-		return nil, err
+		logrus.Warn(err)
+	}
+	fileRepo, err := repo.NewFileStorage(cfg)
+	if err != nil {
+		logrus.Warn(err)
+	}
+	memRepo, err := repo.NewMemStorage(cfg)
+	if err != nil {
+		logrus.Warn(err)
+	}
+	fatal := memRepo == nil && fileRepo == nil && pgRepo == nil
+	if fatal {
+		return nil, fmt.Errorf("fail to init repository")
 	}
 	return &Service{
-		repo: repo,
+		pgRepo:   pgRepo,
+		fileRepo: fileRepo,
+		memRepo:  memRepo,
 	}, nil
 }
 
@@ -40,9 +57,15 @@ func (s *Service) SetURL(url string) (string, error) {
 
 	hash := sha256.Sum256([]byte(url))
 	shortHash := fmt.Sprintf("%x", hash[:8])
-	shortHash, err := s.repo.Set(url, shortHash)
 
-	return shortHash, err
+	switch {
+	case s.pgRepo != nil:
+		return s.pgRepo.Set(url, shortHash)
+	case s.fileRepo != nil:
+		return s.fileRepo.Set(url, shortHash)
+	}
+
+	return s.memRepo.Set(url, shortHash)
 }
 
 func (s *Service) GetURL(hash string) (string, error) {
@@ -50,11 +73,20 @@ func (s *Service) GetURL(hash string) (string, error) {
 	if hash == "" {
 		return "", fmt.Errorf("incorrect id")
 	}
-	return s.repo.Get(hash)
+	switch {
+	case s.pgRepo != nil:
+		return s.pgRepo.Get(hash)
+	case s.fileRepo != nil:
+		return s.fileRepo.Get(hash)
+	}
+	return s.memRepo.Get(hash)
 }
 
 func (s *Service) Ping() error {
-	return s.repo.Ping()
+	if s.pgRepo != nil {
+		return s.pgRepo.Ping()
+	}
+	return nil
 }
 
 func (s *Service) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
@@ -66,5 +98,11 @@ func (s *Service) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayU
 		hash := sha256.Sum256([]byte(item.OriginalURL))
 		req[i].ShortURL = fmt.Sprintf("%x", hash[:8])
 	}
-	return s.repo.SetArrayURL(req)
+	switch {
+	case s.pgRepo != nil:
+		return s.pgRepo.SetArrayURL(req)
+	case s.fileRepo != nil:
+		return s.fileRepo.SetArrayURL(req)
+	}
+	return s.memRepo.SetArrayURL(req)
 }
