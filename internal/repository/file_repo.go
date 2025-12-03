@@ -33,7 +33,9 @@ func NewFileStorage(cfg *config.Config) (Repository, error) {
 		cfg:     cfg,
 		hasFile: cfg.Opts.StorageFile != "",
 	}
-
+	if !s.hasFile {
+        return nil, fmt.Errorf("fail to init file storage")
+    }
 	err := s.loadFromFile()
 	if err != nil {
 		return nil, err
