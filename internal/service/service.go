@@ -54,17 +54,19 @@ func (s *Service) SetURL(url string) (string, error) {
 	if url == "" {
 		return "", fmt.Errorf("incorrect url")
 	}
-
+logrus.Info("SetURL1", url)
 	hash := sha256.Sum256([]byte(url))
 	shortHash := fmt.Sprintf("%x", hash[:8])
 
 	switch {
 	case s.pgRepo != nil:
+		logrus.Info("SetURL2", url)
 		return s.pgRepo.Set(url, shortHash)
 	case s.fileRepo != nil:
+		logrus.Info("SetURL3", url)
 		return s.fileRepo.Set(url, shortHash)
 	}
-
+logrus.Info("SetURL4", url)
 	return s.memRepo.Set(url, shortHash)
 }
 
@@ -73,12 +75,16 @@ func (s *Service) GetURL(hash string) (string, error) {
 	if hash == "" {
 		return "", fmt.Errorf("incorrect id")
 	}
+	logrus.Info("GetURL1", hash)
 	switch {
 	case s.pgRepo != nil:
+		logrus.Info("GetURL2", hash)
 		return s.pgRepo.Get(hash)
 	case s.fileRepo != nil:
+		logrus.Info("GetURL3", hash)
 		return s.fileRepo.Get(hash)
 	}
+	logrus.Info("GetURL4", hash)
 	return s.memRepo.Get(hash)
 }
 
