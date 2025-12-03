@@ -14,18 +14,23 @@ func main() {
 	if err != nil {
 		logrus.Fatalln(err)
 	}
-	psql, _ := db.InitPostgresClient(cfg)
+	psql, err := db.InitPostgresClient(cfg)
+	if err != nil {
+		logrus.Warn(err)
+	}
 
 	logrus.Info("Running migrations...")
 	err = migrations.Up(psql)
 	if err != nil {
 		logrus.Warn(err)
+	} else {
+		logrus.Info("Migrations applied successfully")
 	}
 	defer func() {
-		migrations.Down(psql)
-		logrus.Info("Migrations down")
+		//save data
+		// migrations.Down(psql)
+		// logrus.Info("Migrations down")
 	}()
-	logrus.Info("Migrations applied successfully")
 
 	s, err := server.NewServer(cfg, psql)
 	if err != nil {
