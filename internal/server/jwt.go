@@ -8,6 +8,7 @@ import (
 
 	"github.com/SerzhLimon/ReductionURL/internal/model"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -54,6 +55,7 @@ func createJWT(res http.ResponseWriter) error {
 func validateJWT(res http.ResponseWriter, req *http.Request) error {
 	cookie, err := req.Cookie("jwt_token")
 	if err != nil {
+		logrus.Error("here0")
 		return createJWT(res)
 	}
 
@@ -76,10 +78,12 @@ func validateJWT(res http.ResponseWriter, req *http.Request) error {
 		return model.ErrEmptyUserID
 	}
 	if err != nil {
+		logrus.Error(err, "here1")
 		return fmt.Errorf("failed to parse token: %w", err)
 	}
 
 	if !token.Valid {
+		logrus.Error("here2")
 		return fmt.Errorf("invalid token")
 	}
 

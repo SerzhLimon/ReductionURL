@@ -228,6 +228,7 @@ func (s *Server) SetArrayURLJson(res http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) GetArrayURLJson(res http.ResponseWriter, req *http.Request) {
+	logrus.Info("GetArrayURLJson------------")
 	if req.Method != http.MethodGet {
 		http.Error(res, "method must be GET", http.StatusBadRequest)
 		return
