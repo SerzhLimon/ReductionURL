@@ -16,6 +16,7 @@ type UseCase interface {
 	GetURL(hash string) (string, error)
 	Ping() error
 	SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error)
+	GetArrayURL() ([]model.GetArrayURLResponse, error)
 }
 
 type Service struct {
@@ -80,4 +81,8 @@ func (s *Service) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayU
 	}
 
 	return s.repo.SetArrayURL(req)
+}
+
+func (s *Service) GetArrayURL() ([]model.GetArrayURLResponse, error) {
+	return s.repo.GetArrayURL()
 }

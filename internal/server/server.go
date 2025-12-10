@@ -238,22 +238,12 @@ func (s *Server) GetArrayURLJson(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	body, err := io.ReadAll(req.Body)
+	result, err := s.uc.GetArrayURL()
 	if err != nil {
-		http.Error(res, "cannot read body", http.StatusBadRequest)
-		return
-	}
-	defer req.Body.Close()
-
-	var request []model.SetArrayURLRequest
-	if err = json.Unmarshal(body, &request); err != nil {
-		logrus.Errorln(err)
-		http.Error(res, "cannot unmarshal body", http.StatusBadRequest)
-		return
-	}
-
-	result, err := s.uc.SetArrayURL(request)
-	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(res, err.Error(), http.StatusNoContent)
+			return
+		}
 		logrus.Errorln(err)
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
