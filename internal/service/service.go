@@ -95,8 +95,6 @@ func (s *Service) DeleteArrayURL(hashArray []string) {
 			err := s.repo.Delete(hash)
 			if err != nil {
 				logrus.Warn(err)
-			} else {
-				logrus.Print("success---------")
 			}
 		}(hash)
 	}

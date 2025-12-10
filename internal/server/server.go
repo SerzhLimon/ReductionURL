@@ -288,7 +288,6 @@ func (s *Server) DeleteArrayURLJson(res http.ResponseWriter, req *http.Request) 
 
 	var hashArray []string
 	if err = json.Unmarshal(body, &hashArray); err != nil {
-		logrus.Errorln(err)
 		http.Error(res, "cannot unmarshal body", http.StatusBadRequest)
 		return
 	}

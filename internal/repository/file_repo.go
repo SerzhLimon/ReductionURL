@@ -183,7 +183,6 @@ func (s *FileStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 }
 
 func (s *FileStorage) Delete(hash string) error {
-	logrus.Println("FileStorage")
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
