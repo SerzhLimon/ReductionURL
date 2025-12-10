@@ -18,6 +18,7 @@ type URLRecord struct {
 	UUID        string `json:"uuid"`
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
+	IsDeleted   bool   `json:"is_deleted"`
 }
 
 type FileStorage struct {
@@ -34,8 +35,8 @@ func NewFileStorage(cfg *config.Config) (Repository, error) {
 		hasFile: cfg.Opts.StorageFile != "",
 	}
 	if !s.hasFile {
-        return nil, fmt.Errorf("fail to init file storage")
-    }
+		return nil, fmt.Errorf("fail to init file storage")
+	}
 	err := s.loadFromFile()
 	if err != nil {
 		return nil, err
@@ -101,6 +102,9 @@ func (s *FileStorage) Get(hash string) (string, error) {
 	})
 	if !exist {
 		return "", fmt.Errorf("%s not found", hash)
+	}
+	if item.IsDeleted {
+		return "", model.ErrDeletedURL
 	}
 
 	return item.OriginalURL, nil
@@ -182,9 +186,11 @@ func (s *FileStorage) Delete(hash string) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	s.s = lo.Reject(s.s, func(item URLRecord, _ int) bool {
-        return item.ShortURL == hash 
-    })
+	lo.ForEach(s.s, func(_ URLRecord, i int) {
+		if s.s[i].ShortURL == hash {
+			s.s[i].IsDeleted = true
+		}
+	})
 
 	return s.saveToFile()
 }

@@ -49,6 +49,7 @@ func (s *Server) route() {
 	s.core.Get("/ping", s.Ping)
 	s.core.Post("/api/shorten/batch", s.SetArrayURLJson)
 	s.core.Get("/api/user/urls", s.GetArrayURLJson)
+	s.core.Delete("/api/user/urls", s.DeleteArrayURLJson)
 }
 
 func (s *Server) Run() {
@@ -261,3 +262,39 @@ func (s *Server) GetArrayURLJson(res http.ResponseWriter, req *http.Request) {
 	res.Write(response)
 }
 
+func (s *Server) DeleteArrayURLJson(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodDelete {
+		http.Error(res, "method must be DELETE", http.StatusBadRequest)
+		return
+	}
+
+	contentType := req.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		http.Error(res, "Content-Type must be application/json", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(res, "cannot read body", http.StatusBadRequest)
+		return
+	}
+	defer req.Body.Close()
+
+	var hashArray []string
+	if err = json.Unmarshal(body, &hashArray); err != nil {
+		logrus.Errorln(err)
+		http.Error(res, "cannot unmarshal body", http.StatusBadRequest)
+		return
+	}
+
+	_, err = getUserID(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusNoContent)
+		return
+	}
+
+	s.uc.DeleteArrayURL(hashArray)
+
+	res.WriteHeader(http.StatusAccepted)
+}

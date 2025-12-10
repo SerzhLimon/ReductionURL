@@ -8,9 +8,9 @@ const (
         DO NOTHING
     `
 	queryGetURL = `
-		SELECT originalURL
+		SELECT originalURL, isDeleted
 		FROM reductionurl
-		WHERE shortURL = $1 AND isDeleted = false
+		WHERE shortURL = $1
 	`
 	queryGetArrayURL = `
 		SELECT originalURL, shortURL 

@@ -9,6 +9,7 @@ import (
 	"github.com/SerzhLimon/ReductionURL/internal/config"
 	"github.com/SerzhLimon/ReductionURL/internal/model"
 	repo "github.com/SerzhLimon/ReductionURL/internal/repository"
+	"github.com/sirupsen/logrus"
 )
 
 type UseCase interface {
@@ -17,6 +18,7 @@ type UseCase interface {
 	Ping() error
 	SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error)
 	GetArrayURL() ([]model.GetArrayURLResponse, error)
+	DeleteArrayURL(hashArray []string)
 }
 
 type Service struct {
@@ -85,4 +87,16 @@ func (s *Service) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayU
 
 func (s *Service) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 	return s.repo.GetArrayURL()
+}
+
+func (s *Service) DeleteArrayURL(hashArray []string) {
+
+	for _, hash := range hashArray {
+		go func(hash string) {
+			err := s.repo.Delete(hash)
+			if err != nil {
+				logrus.Warn(err)
+			}
+		}(hash)
+	}
 }

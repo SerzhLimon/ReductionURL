@@ -9,4 +9,5 @@ func (e Err) Error() string {
 const (
 	ErrURLAlreadyExists Err = "url already exists"
 	ErrEmptyUserID Err = "empty user ID"
+	ErrDeletedURL Err = "url is deleted"
 )

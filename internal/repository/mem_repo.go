@@ -8,9 +8,14 @@ import (
 	"github.com/SerzhLimon/ReductionURL/internal/model"
 )
 
+type DataURL struct {
+	OriginalURL string
+	IsDeleted   bool
+}
+
 type MemStorage struct {
 	cfg         *config.Config
-	memoryCache map[string]string
+	memoryCache map[string]DataURL
 	mu          sync.RWMutex
 }
 
@@ -18,7 +23,7 @@ func NewMemStorage(cfg *config.Config) (Repository, error) {
 
 	s := &MemStorage{
 		cfg:         cfg,
-		memoryCache: make(map[string]string),
+		memoryCache: make(map[string]DataURL),
 	}
 
 	return s, nil
@@ -28,11 +33,14 @@ func (s *MemStorage) Get(hash string) (string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	url, exist := s.memoryCache[hash]
+	data, exist := s.memoryCache[hash]
 	if !exist {
 		return "", fmt.Errorf("%s not found", hash)
 	}
-	return url, nil
+	if data.IsDeleted {
+		return "", model.ErrDeletedURL
+	}
+	return data.OriginalURL, nil
 }
 
 func (s *MemStorage) Set(url, hash string) (string, error) {
@@ -44,7 +52,7 @@ func (s *MemStorage) Set(url, hash string) (string, error) {
 		return existingShortURL, model.ErrURLAlreadyExists
 	}
 
-	s.memoryCache[hash] = url
+	s.memoryCache[hash] = DataURL{OriginalURL: url}
 	return hash, nil
 }
 
@@ -70,7 +78,7 @@ func (s *MemStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 	var res []model.GetArrayURLResponse
 	for key, val := range s.memoryCache {
 		shortURL := s.cfg.Opts.BaseURL + "/" + key
-		res = append(res, model.GetArrayURLResponse{Original: val, Short: shortURL})
+		res = append(res, model.GetArrayURLResponse{Original: val.OriginalURL, Short: shortURL})
 	}
 
 	if len(res) == 0 {
