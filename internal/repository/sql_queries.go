@@ -14,6 +14,6 @@ const (
 	`
 	queryGetArrayURL = `
 		SELECT originalURL, shortURL 
-		FROM cupurl;
+		FROM reductionurl;
 	`
 )

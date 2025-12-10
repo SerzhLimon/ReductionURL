@@ -14,16 +14,16 @@ const (
 	secretKey = "super_secret_key_for_shortener"
 )
 
-var userIdCounter int
+var userIDCounter int
 
 type Claims struct {
 	UserID int `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
-func createJWT(res http.ResponseWriter, req *http.Request) error {
-	userIdCounter++
-	userID := userIdCounter
+func createJWT(res http.ResponseWriter) error {
+	userIDCounter++
+	userID := userIDCounter
 
 	expirationTime := time.Now().Add(24 * time.Hour) // Токен на 24 часа
 
@@ -54,7 +54,7 @@ func createJWT(res http.ResponseWriter, req *http.Request) error {
 func validateJWT(res http.ResponseWriter, req *http.Request) error {
 	cookie, err := req.Cookie("jwt_token")
 	if err != nil {
-		return createJWT(res, req)
+		return createJWT(res)
 	}
 
 	tokenStr := cookie.Value

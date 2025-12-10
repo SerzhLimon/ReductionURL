@@ -111,7 +111,6 @@ func (s *PgStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 			return nil, err
 		}
 		shortURL := s.cfg.Opts.BaseURL + "/" + v.Short
-		// v.Hash = v.ShortURL
 		v.Short = shortURL
 
 		res = append(res, v)
