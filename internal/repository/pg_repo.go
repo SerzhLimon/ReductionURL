@@ -70,7 +70,7 @@ func (s *PgStorage) Get(hash string) (string, error) {
 			logrus.Error("PgStorage2")
 			return "", fmt.Errorf("URL not found")
 		}
-		logrus.Error("PgStorage3")
+		logrus.Error("PgStorage3", err)
 		return "", fmt.Errorf("database error: %w", err)
 	}
 
