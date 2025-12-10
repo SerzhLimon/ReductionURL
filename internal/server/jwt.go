@@ -104,6 +104,9 @@ func getUserID(req *http.Request) (int, error) {
 			return []byte(secretKey), nil
 		},
 	)
+	if err != nil {
+		return 0, err
+	}
 
 	id := claims.UserID
 	if id < 1 {
