@@ -228,17 +228,16 @@ func (s *Server) SetArrayURLJson(res http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) GetArrayURLJson(res http.ResponseWriter, req *http.Request) {
-	logrus.Info("GetArrayURLJson------------")
 	if req.Method != http.MethodGet {
 		http.Error(res, "method must be GET", http.StatusBadRequest)
 		return
 	}
 
-	// contentType := req.Header.Get("Content-Type")
-	// if contentType != "application/json" {
-	// 	http.Error(res, "Content-Type must be application/json", http.StatusBadRequest)
-	// 	return
-	// }
+	_, err := getUserID(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusNoContent)
+		return
+	}
 
 	result, err := s.uc.GetArrayURL()
 	if err != nil {
