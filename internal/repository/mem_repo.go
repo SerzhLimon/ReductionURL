@@ -6,6 +6,7 @@ import (
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
 	"github.com/SerzhLimon/ReductionURL/internal/model"
+	"github.com/sirupsen/logrus"
 )
 
 type DataURL struct {
@@ -89,6 +90,7 @@ func (s *MemStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 }
 
 func (s *MemStorage) Delete(hash string) error {
+	logrus.Println("MemStorage")
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
 	"github.com/SerzhLimon/ReductionURL/internal/model"
+	"github.com/sirupsen/logrus"
 )
 
 type PgStorage struct {
@@ -130,6 +131,7 @@ func (s *PgStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 }
 
 func (s *PgStorage) Delete(hash string) error {
+	logrus.Println("PgStorage")
 	result, err := s.db.Exec(queryDeleteURL, hash)
 	if err != nil {
 		return fmt.Errorf("failed delete %s; %w", hash, err)
