@@ -61,10 +61,10 @@ func (s *PgStorage) Get(hash string) (string, error) {
 	var isDeleted bool
 	err := s.db.QueryRow(queryGetURL, hash).Scan(&originalURL, &isDeleted)
 
+	if isDeleted {
+		return "", model.ErrDeletedURL
+	}
 	if err != nil {
-		if isDeleted {
-			return "", model.ErrDeletedURL
-		}
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", fmt.Errorf("URL not found")
 		}
