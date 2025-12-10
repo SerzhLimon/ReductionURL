@@ -293,11 +293,11 @@ func (s *Server) DeleteArrayURLJson(res http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	// _, err = getUserID(req)
-	// if err != nil {
-	// 	http.Error(res, err.Error(), http.StatusNoContent)
-	// 	return
-	// }
+	_, err = getUserID(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusNoContent)
+		return
+	}
 
 	s.uc.DeleteArrayURL(hashArray)
 
