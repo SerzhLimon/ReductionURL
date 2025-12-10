@@ -144,6 +144,6 @@ func (s *PgStorage) Delete(hash string) error {
 	if rowsAffected == 0 {
 		return fmt.Errorf("failed delete %s; rows affected == 0", hash)
 	}
-
+logrus.Printf("PgStorage=============== delete %s", hash)
 	return nil
 }
