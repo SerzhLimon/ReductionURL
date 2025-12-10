@@ -177,3 +177,14 @@ func (s *FileStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 
 	return res, nil
 }
+
+func (s *FileStorage) Delete(hash string) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	s.s = lo.Reject(s.s, func(item URLRecord, _ int) bool {
+        return item.ShortURL == hash 
+    })
+
+	return s.saveToFile()
+}

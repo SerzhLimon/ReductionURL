@@ -10,10 +10,16 @@ const (
 	queryGetURL = `
 		SELECT originalURL
 		FROM reductionurl
-		WHERE shortURL = $1
+		WHERE shortURL = $1 AND isDeleted = false
 	`
 	queryGetArrayURL = `
 		SELECT originalURL, shortURL 
 		FROM reductionurl;
+	`
+
+	queryDeleteURL = `
+		UPDATE reductionurl 
+		SET isDeleted = true 
+		WHERE shortURL = $1;
 	`
 )

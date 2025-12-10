@@ -8,4 +8,5 @@ type Repository interface {
 	Ping() error
 	SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error)
 	GetArrayURL() ([]model.GetArrayURLResponse, error)
+	Delete(hash string) error 
 }

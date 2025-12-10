@@ -6,7 +6,8 @@ const (
 		(
 			id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 			originalURL varchar(255) NOT NULL UNIQUE,                                                                
-			shortURL varchar(255)  NOT NULL UNIQUE                                            
+			shortURL varchar(255)  NOT NULL UNIQUE,
+			isDeleted boolean DEFAULT false                                      
 		);
 	`
 

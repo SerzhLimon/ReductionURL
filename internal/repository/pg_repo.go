@@ -123,3 +123,22 @@ func (s *PgStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 
 	return res, nil
 }
+
+func (s *PgStorage) Delete(hash string) error {
+	result, err := s.db.Exec(queryDeleteURL, hash)
+	if err != nil {
+		return fmt.Errorf("failed delete %s; %w", hash, err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed delete %s; %w", hash, err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("failed delete %s; rows affected == 0", hash)
+	}
+	
+
+	return nil
+}
+
