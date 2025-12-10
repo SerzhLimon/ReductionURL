@@ -105,6 +105,10 @@ func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
 
 	url, err := s.uc.GetURL(hash)
 	if err != nil {
+		if errors.Is(err, model.ErrDeletedURL) {
+			http.Error(res, err.Error(), http.StatusGone)
+			return
+		}
 		logrus.Error(err)
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
