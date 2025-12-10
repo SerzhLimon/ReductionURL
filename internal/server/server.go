@@ -258,7 +258,7 @@ func (s *Server) GetArrayURLJson(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusCreated)
+	res.WriteHeader(http.StatusOK)
 	res.Write(response)
 }
 
