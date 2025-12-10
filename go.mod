@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
 	golang.org/x/text v0.22.0 // indirect

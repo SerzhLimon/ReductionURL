@@ -18,3 +18,8 @@ type SetArrayURLResponse struct {
 	ID  string `json:"correlation_id"`
 	URL string `json:"short_url"`
 }
+
+type GetArrayURLResponse struct {
+	Short    string `json:"short_url"`
+	Original string `json:"original_url"`
+}

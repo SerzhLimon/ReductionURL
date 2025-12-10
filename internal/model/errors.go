@@ -6,4 +6,7 @@ func (e Err) Error() string {
 	return string(e)
 }
 
-const ErrURLAlreadyExists Err = "url already exists"
+const (
+	ErrURLAlreadyExists Err = "url already exists"
+	ErrEmptyUserID Err = "empty user ID"
+)

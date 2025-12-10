@@ -40,6 +40,9 @@ func NewServer(cfg *config.Config, db *sql.DB) (*Server, error) {
 func (s *Server) route() {
 	s.core.Use(handLogger)
 	s.core.Use(compress)
+	s.core.Use(cookies)
+
+
 	s.core.Post("/", s.SetURL)
 	s.core.Post("/api/shorten", s.SetURLJson)
 	s.core.Get("/{id}", s.GetURL)
@@ -222,3 +225,48 @@ func (s *Server) SetArrayURLJson(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusCreated)
 	res.Write(response)
 }
+
+func (s *Server) GetArrayURLJson(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(res, "method must be GET", http.StatusBadRequest)
+		return
+	}
+
+	contentType := req.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		http.Error(res, "Content-Type must be application/json", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(res, "cannot read body", http.StatusBadRequest)
+		return
+	}
+	defer req.Body.Close()
+
+	var request []model.SetArrayURLRequest
+	if err = json.Unmarshal(body, &request); err != nil {
+		logrus.Errorln(err)
+		http.Error(res, "cannot unmarshal body", http.StatusBadRequest)
+		return
+	}
+
+	result, err := s.uc.SetArrayURL(request)
+	if err != nil {
+		logrus.Errorln(err)
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response, err := json.Marshal(result)
+	if err != nil {
+		logrus.Errorln(err)
+		http.Error(res, "cannot marshal body", http.StatusBadRequest)
+		return
+	}
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+	res.Write(response)
+}
+

@@ -63,3 +63,19 @@ func (s *MemStorage) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArr
 func (s *MemStorage) Ping() error {
 	return nil
 }
+
+func (s *MemStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var res []model.GetArrayURLResponse
+	for key, val := range s.memoryCache {
+		shortURL := s.cfg.Opts.BaseURL + "/" + key
+		res = append(res, model.GetArrayURLResponse{Original: val, Short: shortURL})
+	}
+
+	if len(res) == 0 {
+		return []model.GetArrayURLResponse{}, fmt.Errorf("not found")
+	}
+
+	return res, nil
+}

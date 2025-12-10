@@ -6,10 +6,12 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 type Config struct {
-	Opts *Options
+	Opts  *Options
+	Token *Token
 }
 
 type Options struct {
@@ -17,6 +19,12 @@ type Options struct {
 	BaseURL      string `env:"BASE_URL"`
 	StorageFile  string `env:"FILE_STORAGE_PATH"`
 	DataBaseHost string `env:"DATABASE_DSN"`
+}
+
+type Token struct {
+	SecretKey  string        `env:"SECRET_KEY" default:"super-secret-key"`
+	CookieName string        `env:"COOKIE_NAME" default:"url_shortener_session"`
+	CookieTTL  time.Duration `env:"COOKIE_TTL" default:"24h"`
 }
 
 func NewConfig() (*Config, error) {

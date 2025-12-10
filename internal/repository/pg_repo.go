@@ -92,3 +92,35 @@ func (s *PgStorage) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArra
 	}
 	return resp, nil
 }
+
+func (s *PgStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
+	var res []model.GetArrayURLResponse
+
+	rows, err := s.db.Query(queryGetArrayURL)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	// пробегаем по всем записям
+	for rows.Next() {
+		var v model.GetArrayURLResponse
+		err = rows.Scan(&v.Original, &v.Short)
+		if err != nil {
+			return nil, err
+		}
+		shortURL := s.cfg.Opts.BaseURL + "/" + v.Short
+		// v.Hash = v.ShortURL
+		v.Short = shortURL
+
+		res = append(res, v)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

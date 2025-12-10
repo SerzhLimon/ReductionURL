@@ -162,3 +162,18 @@ func (s *FileStorage) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetAr
 func (s *FileStorage) Ping() error {
 	return nil
 }
+
+func (s *FileStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var res []model.GetArrayURLResponse
+	for _, h := range s.s {
+		shortURL := s.cfg.Opts.BaseURL + "/" + h.ShortURL
+		res = append(res, model.GetArrayURLResponse{Original: h.OriginalURL, Short: shortURL})
+	}
+	if len(res) == 0 {
+		return []model.GetArrayURLResponse{}, fmt.Errorf("not found")
+	}
+
+	return res, nil
+}
