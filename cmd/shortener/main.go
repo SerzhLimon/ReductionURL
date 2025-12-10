@@ -28,8 +28,8 @@ func main() {
 	}
 	defer func() {
 		//save data
-		// migrations.Down(psql)
-		// logrus.Info("Migrations down")
+		migrations.Down(psql)
+		logrus.Info("Migrations down")
 	}()
 
 	s, err := server.NewServer(cfg, psql)

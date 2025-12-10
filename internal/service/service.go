@@ -90,7 +90,7 @@ func (s *Service) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 }
 
 func (s *Service) DeleteArrayURL(hashArray []string) {
-
+	
 	for _, hash := range hashArray {
 		go func(hash string) {
 			err := s.repo.Delete(hash)

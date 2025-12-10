@@ -8,7 +8,7 @@ const (
         DO NOTHING
     `
 	queryGetURL = `
-		SELECT originalURL, isDeleted
+		SELECT originalURL, shadow
 		FROM reductionurl
 		WHERE shortURL = $1
 	`
@@ -19,7 +19,7 @@ const (
 
 	queryDeleteURL = `
 		UPDATE reductionurl 
-		SET isDeleted = true 
+		SET is_deleted = true 
 		WHERE shortURL = $1;
 	`
 )

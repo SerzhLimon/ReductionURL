@@ -40,7 +40,7 @@ func NewServer(cfg *config.Config, db *sql.DB) (*Server, error) {
 func (s *Server) route() {
 	s.core.Use(handLogger)
 	s.core.Use(compress)
-	s.core.Use(cookies)
+	// s.core.Use(cookies)
 
 
 	s.core.Post("/", s.SetURL)
@@ -288,11 +288,11 @@ func (s *Server) DeleteArrayURLJson(res http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	_, err = getUserID(req)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusNoContent)
-		return
-	}
+	// _, err = getUserID(req)
+	// if err != nil {
+	// 	http.Error(res, err.Error(), http.StatusNoContent)
+	// 	return
+	// }
 
 	s.uc.DeleteArrayURL(hashArray)
 
