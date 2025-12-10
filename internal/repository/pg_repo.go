@@ -8,7 +8,6 @@ import (
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
 	"github.com/SerzhLimon/ReductionURL/internal/model"
-	"github.com/sirupsen/logrus"
 )
 
 type PgStorage struct {
@@ -63,14 +62,12 @@ func (s *PgStorage) Get(hash string) (string, error) {
 
 	if err != nil {
 		if isDeleted {
-			logrus.Error("PgStorage1")
 			return "", model.ErrDeletedURL
 		}
 		if errors.Is(err, sql.ErrNoRows) {
-			logrus.Error("PgStorage2")
 			return "", fmt.Errorf("URL not found")
 		}
-		logrus.Error("PgStorage3", err)
+
 		return "", fmt.Errorf("database error: %w", err)
 	}
 

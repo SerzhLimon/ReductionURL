@@ -40,7 +40,7 @@ func NewServer(cfg *config.Config, db *sql.DB) (*Server, error) {
 func (s *Server) route() {
 	s.core.Use(handLogger)
 	s.core.Use(compress)
-	// s.core.Use(cookies)
+	s.core.Use(cookies)
 
 
 	s.core.Post("/", s.SetURL)

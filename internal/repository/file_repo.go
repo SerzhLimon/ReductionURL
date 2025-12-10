@@ -101,11 +101,9 @@ func (s *FileStorage) Get(hash string) (string, error) {
 		return item.ShortURL == hash
 	})
 	if !exist {
-		logrus.Error("FileStorage1")
 		return "", fmt.Errorf("%s not found", hash)
 	}
 	if item.IsDeleted {
-		logrus.Error("FileStorage2")
 		return "", model.ErrDeletedURL
 	}
 
