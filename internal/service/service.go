@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
 	"github.com/SerzhLimon/ReductionURL/internal/model"
@@ -90,13 +91,16 @@ func (s *Service) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 }
 
 func (s *Service) DeleteArrayURL(hashArray []string) {
-	
+	wg := sync.WaitGroup{}
 	for _, hash := range hashArray {
+		wg.Add(1)
 		go func(hash string) {
+			defer wg.Done()
 			err := s.repo.Delete(hash)
 			if err != nil {
 				logrus.Warn(err)
 			}
 		}(hash)
 	}
+	wg.Wait()
 }
