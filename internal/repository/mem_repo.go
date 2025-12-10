@@ -6,6 +6,7 @@ import (
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
 	"github.com/SerzhLimon/ReductionURL/internal/model"
+	"github.com/sirupsen/logrus"
 )
 
 type DataURL struct {
@@ -35,9 +36,11 @@ func (s *MemStorage) Get(hash string) (string, error) {
 
 	data, exist := s.memoryCache[hash]
 	if !exist {
+		logrus.Error("MemStorage1")
 		return "", fmt.Errorf("%s not found", hash)
 	}
 	if data.IsDeleted {
+		logrus.Error("MemStorage2")
 		return "", model.ErrDeletedURL
 	}
 	return data.OriginalURL, nil

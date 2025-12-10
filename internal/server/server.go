@@ -105,6 +105,7 @@ func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
 
 	url, err := s.uc.GetURL(hash)
 	if err != nil {
+		logrus.Error(err)
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
