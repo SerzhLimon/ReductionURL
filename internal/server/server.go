@@ -234,11 +234,11 @@ func (s *Server) GetArrayURLJson(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	contentType := req.Header.Get("Content-Type")
-	if contentType != "application/json" {
-		http.Error(res, "Content-Type must be application/json", http.StatusBadRequest)
-		return
-	}
+	// contentType := req.Header.Get("Content-Type")
+	// if contentType != "application/json" {
+	// 	http.Error(res, "Content-Type must be application/json", http.StatusBadRequest)
+	// 	return
+	// }
 
 	result, err := s.uc.GetArrayURL()
 	if err != nil {
