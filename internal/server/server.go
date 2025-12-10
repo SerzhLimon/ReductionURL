@@ -48,6 +48,7 @@ func (s *Server) route() {
 	s.core.Get("/{id}", s.GetURL)
 	s.core.Get("/ping", s.Ping)
 	s.core.Post("/api/shorten/batch", s.SetArrayURLJson)
+	s.core.Get("/api/user/urls", s.GetArrayURLJson)
 }
 
 func (s *Server) Run() {
