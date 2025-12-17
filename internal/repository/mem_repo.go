@@ -89,8 +89,8 @@ func (s *MemStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 }
 
 func (s *MemStorage) Delete(hash string) error {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	delete(s.memoryCache, hash)
 	return nil

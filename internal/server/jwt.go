@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/SerzhLimon/ReductionURL/internal/model"
@@ -14,7 +15,7 @@ const (
 	secretKey = "super_secret_key_for_shortener"
 )
 
-var userIDCounter int
+var userIDCounter atomic.Int64
 
 type Claims struct {
 	UserID int `json:"user_id"`
@@ -22,8 +23,7 @@ type Claims struct {
 }
 
 func createJWT(res http.ResponseWriter) error {
-	userIDCounter++
-	userID := userIDCounter
+	userID := int(userIDCounter.Add(1))
 
 	expirationTime := time.Now().Add(24 * time.Hour) // Токен на 24 часа
 
