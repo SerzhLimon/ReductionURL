@@ -1,0 +1,17 @@
+package migrations
+
+const (
+	createTable = `
+		CREATE TABLE IF NOT EXISTS reductionurl
+		(
+			id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+			originalURL varchar(255) NOT NULL UNIQUE,                                                                
+			shortURL varchar(255)  NOT NULL UNIQUE,
+			is_deleted BOOLEAN DEFAULT FALSE                              
+		);
+	`
+
+	dropTable = `
+		DROP TABLE IF EXISTS reductionurl;
+	`
+)
