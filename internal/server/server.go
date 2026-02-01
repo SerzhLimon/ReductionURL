@@ -1,3 +1,4 @@
+// Package server реализует HTTP сервер для сервиса сокращения URL.
 package server
 
 import (
@@ -18,6 +19,7 @@ import (
 	uc "github.com/SerzhLimon/ReductionURL/internal/service"
 )
 
+// Server представляет HTTP сервер для сокращения URL.
 type Server struct {
 	cfg   *config.Config
 	core  *chi.Mux
@@ -25,6 +27,7 @@ type Server struct {
 	audit audit.Observer
 }
 
+// NewServer создает и инициализирует новый экземпляр Server.
 func NewServer(cfg *config.Config, db *sql.DB) (*Server, error) {
 	uc, err := uc.NewService(cfg, db)
 	if err != nil {
@@ -58,6 +61,7 @@ func (s *Server) route() {
 	s.core.Delete("/api/user/urls", s.DeleteArrayURLJson)
 }
 
+// RunAudit запускает воркер аудита для отправки событий.
 func (s *Server) RunAudit(ctx context.Context) {
 	if s.audit == nil {
 		return
@@ -65,11 +69,13 @@ func (s *Server) RunAudit(ctx context.Context) {
 	s.audit.Run(ctx)
 }
 
+// Run запускает HTTP сервер.
 func (s *Server) Run() error {
 	logrus.Infof("server started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
 	return http.ListenAndServe(s.cfg.Opts.Addr, s.core)
 }
 
+// SetURL обрабатывает POST запрос для создания короткой ссылки из plain text.
 func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "method must be POST", http.StatusBadRequest)
@@ -116,6 +122,7 @@ func (s *Server) sendEvent(event audit.Event) {
 	s.audit.Update(event)
 }
 
+// GetURL обрабатывает GET запрос для редиректа по короткой ссылке.
 func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		http.Error(res, "method must be GET", http.StatusBadRequest)
@@ -142,6 +149,7 @@ func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// SetURLJson обрабатывает POST запрос для создания короткой ссылки из JSON.
 func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "method must be POST", http.StatusBadRequest)
@@ -203,6 +211,7 @@ func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
 	res.Write(response)
 }
 
+// Ping обрабатывает GET запрос для проверки доступности базы данных.
 func (s *Server) Ping(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		http.Error(res, "method must be Get", http.StatusBadRequest)
@@ -217,6 +226,7 @@ func (s *Server) Ping(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(status)
 }
 
+// SetArrayURLJson обрабатывает POST запрос для пакетного создания коротких ссылок.
 func (s *Server) SetArrayURLJson(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "method must be POST", http.StatusBadRequest)
@@ -261,6 +271,7 @@ func (s *Server) SetArrayURLJson(res http.ResponseWriter, req *http.Request) {
 	res.Write(response)
 }
 
+// GetArrayURLJson обрабатывает GET запрос для получения всех ссылок пользователя.
 func (s *Server) GetArrayURLJson(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		http.Error(res, "method must be GET", http.StatusBadRequest)
@@ -295,6 +306,7 @@ func (s *Server) GetArrayURLJson(res http.ResponseWriter, req *http.Request) {
 	res.Write(response)
 }
 
+// DeleteArrayURLJson обрабатывает DELETE запрос для удаления ссылок пользователя.
 func (s *Server) DeleteArrayURLJson(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodDelete {
 		http.Error(res, "method must be DELETE", http.StatusBadRequest)

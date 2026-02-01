@@ -1,3 +1,5 @@
+// Package audit реализует систему аудита для логирования событий.
+// Поддерживает запись в файл и отправку на удаленный хост.
 package audit
 
 import (
@@ -15,11 +17,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Константы действий для аудита.
 const (
 	Shorten string = "shorten"
 	Follow  string = "follow"
 )
 
+// Event представляет событие аудита.
 type Event struct {
 	TS     time.Time `json:"ts"`
 	Action string    `json:"action"`
@@ -27,11 +31,13 @@ type Event struct {
 	URL    string    `json:"url"`
 }
 
+// Observer определяет интерфейс для системы аудита.
 type Observer interface {
 	Run(ctx context.Context)
 	Update(event Event)
 }
 
+// Audit реализует систему аудита с поддержкой файла и HTTP.
 type Audit struct {
 	cfg       *config.Config
 	eventChan chan Event
@@ -40,6 +46,7 @@ type Audit struct {
 	hasURL  bool
 }
 
+// New создает новый экземпляр Audit.
 func New(cfg *config.Config) (Observer, error) {
 	if cfg == nil || cfg.Opts == nil {
 		return nil, fmt.Errorf("NewAudit(): empty config")
@@ -56,10 +63,12 @@ func New(cfg *config.Config) (Observer, error) {
 	}, nil
 }
 
+// Update отправляет событие в канал для обработки.
 func (a *Audit) Update(event Event) {
 	a.eventChan <- event
 }
 
+// Run запускает обработчик событий аудита.
 func (a *Audit) Run(ctx context.Context) {
 	for {
 		select {
@@ -104,7 +113,6 @@ func (a *Audit) saveToFile(event Event) error {
 }
 
 func (a *Audit) sendToHost(event Event) error {
-
 	dataEvent, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
@@ -131,6 +139,7 @@ func (a *Audit) sendToHost(event Event) error {
 	return err
 }
 
+// CreateEvent создает новое событие аудита.
 func CreateEvent(userID int, action, URL string) Event {
 	return Event{
 		TS:     time.Now(),
