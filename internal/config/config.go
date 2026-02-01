@@ -19,6 +19,9 @@ type Options struct {
 	BaseURL      string `env:"BASE_URL"`
 	StorageFile  string `env:"FILE_STORAGE_PATH"`
 	DataBaseHost string `env:"DATABASE_DSN"`
+
+	AuditFile string `env:"AUDIT_FILE"`
+	AuditURL  string `env:"AUDIT_URL"`
 }
 
 type Token struct {
@@ -46,6 +49,9 @@ func newOpts() (*Options, error) {
 	var baseURL = flag.String("b", "localhost:8080", "value before short URL")
 	var storageFile = flag.String("f", "", "file for save data")
 	var psqlHost = flag.String("d", "", "psql data")
+	var auditFile = flag.String("audit-file", "", "audit file save events")
+	var auditURL = flag.String("audit-url", "", "audit url send events")
+
 	flag.Parse()
 
 	if opts.Addr == "" {
@@ -60,6 +66,7 @@ func newOpts() (*Options, error) {
 	if opts.DataBaseHost == "" {
 		opts.DataBaseHost = *psqlHost
 	}
+
 	if _, err := url.Parse("https://" + opts.Addr); err != nil {
 		return nil, fmt.Errorf("incorrect parametr `-a` %s", opts.Addr)
 	}
@@ -77,6 +84,7 @@ func newOpts() (*Options, error) {
 	}
 	opts.BaseURL = strings.TrimSuffix(opts.BaseURL, "/")
 
+	parseAuditFields(opts, auditFile, auditURL)
 	return opts, nil
 }
 
@@ -86,9 +94,15 @@ func parseEnv() (*Options, bool) {
 	envStorageFile := os.Getenv("FILE_STORAGE_PATH")
 	envPsqlDsn := os.Getenv("DATABASE_DSN")
 
+	envAiditFile := os.Getenv("AUDIT_FILE")
+	envAiditURL := os.Getenv("AUDIT_URL")
+
 	opts := &Options{}
 	if envStorageFile != "" {
 		opts.StorageFile = envStorageFile
+	}
+	if envAiditFile != "" {
+		opts.AuditFile = envAiditFile
 	}
 	if _, err := url.Parse("http://" + envAddr); err == nil {
 		opts.Addr = envAddr
@@ -99,7 +113,21 @@ func parseEnv() (*Options, bool) {
 	if _, err := url.Parse(envPsqlDsn); err == nil {
 		opts.DataBaseHost = envPsqlDsn
 	}
+	if _, err := url.Parse(envAiditURL); err == nil {
+		opts.AuditURL = envAiditURL
+	}
 
 	sucessAll := opts.Addr != "" && opts.BaseURL != "" && opts.DataBaseHost != ""
 	return opts, sucessAll
+}
+
+func parseAuditFields(opts *Options, auditFilePath, auditURL *string) {
+	if opts.AuditFile == "" && auditFilePath != nil {
+		opts.AuditFile = *auditFilePath
+	}
+	if opts.AuditURL == "" && auditURL != nil {
+		if _, err := url.Parse(*auditURL); err == nil {
+			opts.AuditURL = *auditURL
+		}
+	}
 }

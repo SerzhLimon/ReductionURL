@@ -1,26 +1,28 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
 
+	"github.com/SerzhLimon/ReductionURL/internal/audit"
 	"github.com/SerzhLimon/ReductionURL/internal/config"
 	"github.com/SerzhLimon/ReductionURL/internal/model"
 	uc "github.com/SerzhLimon/ReductionURL/internal/service"
 )
 
 type Server struct {
-	cfg  *config.Config
-	core *chi.Mux
-	uc   uc.UseCase
+	cfg   *config.Config
+	core  *chi.Mux
+	uc    uc.UseCase
+	audit audit.Observer
 }
 
 func NewServer(cfg *config.Config, db *sql.DB) (*Server, error) {
@@ -28,10 +30,15 @@ func NewServer(cfg *config.Config, db *sql.DB) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	audit, err := audit.New(cfg)
+	if err != nil {
+		logrus.Warn("audit not init")
+	}
 	server := &Server{
-		cfg:  cfg,
-		core: chi.NewRouter(),
-		uc:   uc,
+		cfg:   cfg,
+		core:  chi.NewRouter(),
+		uc:    uc,
+		audit: audit,
 	}
 	server.route()
 	return server, nil
@@ -42,7 +49,6 @@ func (s *Server) route() {
 	s.core.Use(compress)
 	s.core.Use(cookies)
 
-
 	s.core.Post("/", s.SetURL)
 	s.core.Post("/api/shorten", s.SetURLJson)
 	s.core.Get("/{id}", s.GetURL)
@@ -52,11 +58,16 @@ func (s *Server) route() {
 	s.core.Delete("/api/user/urls", s.DeleteArrayURLJson)
 }
 
-func (s *Server) Run() {
-	logrus.Infof("server started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
-	if err := http.ListenAndServe(s.cfg.Opts.Addr, s.core); err != nil {
-		log.Fatalln(err)
+func (s *Server) RunAudit(ctx context.Context) {
+	if s.audit == nil {
+		return
 	}
+	s.audit.Run(ctx)
+}
+
+func (s *Server) Run() error {
+	logrus.Infof("server started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
+	return http.ListenAndServe(s.cfg.Opts.Addr, s.core)
 }
 
 func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
@@ -90,6 +101,9 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	userID, _ := getUserID(req)
+	s.audit.Update(audit.CreateEvent(userID, audit.Shorten, string(body)))
+
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte(s.cfg.Opts.BaseURL + "/" + hash))
@@ -113,6 +127,9 @@ func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	userID, _ := getUserID(req)
+	s.audit.Update(audit.CreateEvent(userID, audit.Follow, url))
 
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
@@ -170,6 +187,10 @@ func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "cannot marshal body", http.StatusBadRequest)
 		return
 	}
+
+	userID, _ := getUserID(req)
+	s.audit.Update(audit.CreateEvent(userID, audit.Shorten, string(body)))
+
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusCreated)
 	res.Write(response)

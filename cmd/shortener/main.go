@@ -1,6 +1,12 @@
 package main
 
 import (
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
@@ -36,5 +42,30 @@ func main() {
 	if err != nil {
 		logrus.Fatalln(err)
 	}
-	s.Run()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go s.RunAudit(ctx)
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	serverErr := make(chan error, 1)
+	go func() {
+		if err := s.Run(); err != nil {
+			serverErr <- err
+		}
+	}()
+
+	select {
+	case <-quit:
+		logrus.Info("Shutdown signal received")
+	case err := <-serverErr:
+		logrus.WithError(err).Error("Server error occurred")
+	}
+
+	cancel()
+	time.Sleep(500 * time.Millisecond)
+
+	logrus.Info("Shutting down...")
+
 }
