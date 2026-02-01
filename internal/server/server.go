@@ -102,11 +102,18 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 	}
 
 	userID, _ := getUserID(req)
-	s.audit.Update(audit.CreateEvent(userID, audit.Shorten, string(body)))
+	s.sendEvent(audit.CreateEvent(userID, audit.Shorten, string(body)))
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte(s.cfg.Opts.BaseURL + "/" + hash))
+}
+
+func (s *Server) sendEvent(event audit.Event) {
+	if s.audit == nil {
+		return
+	}
+	s.audit.Update(event)
 }
 
 func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
@@ -129,7 +136,7 @@ func (s *Server) GetURL(res http.ResponseWriter, req *http.Request) {
 	}
 
 	userID, _ := getUserID(req)
-	s.audit.Update(audit.CreateEvent(userID, audit.Follow, url))
+	s.sendEvent(audit.CreateEvent(userID, audit.Follow, url))
 
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
@@ -189,7 +196,7 @@ func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
 	}
 
 	userID, _ := getUserID(req)
-	s.audit.Update(audit.CreateEvent(userID, audit.Shorten, string(body)))
+	s.sendEvent(audit.CreateEvent(userID, audit.Shorten, string(body)))
 
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusCreated)
