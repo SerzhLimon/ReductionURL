@@ -35,9 +35,9 @@ type Observer interface {
 type Audit struct {
 	cfg       *config.Config
 	eventChan chan Event
-	
-	hasFile   bool
-	hasURL    bool
+
+	hasFile bool
+	hasURL  bool
 }
 
 func New(cfg *config.Config) (Observer, error) {
@@ -112,7 +112,7 @@ func (a *Audit) sendToHost(event Event) error {
 
 	addr, _ := url.ParseRequestURI(a.cfg.Opts.AuditURL)
 	body := bytes.NewReader(dataEvent)
-	
+
 	req, err := http.NewRequest(http.MethodPost, addr.String(), body)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
@@ -133,9 +133,9 @@ func (a *Audit) sendToHost(event Event) error {
 
 func CreateEvent(userID int, action, URL string) Event {
 	return Event{
-		TS: time.Now(),
+		TS:     time.Now(),
 		Action: action,
-		URL: URL,
+		URL:    URL,
 		UserID: userID,
 	}
 }
