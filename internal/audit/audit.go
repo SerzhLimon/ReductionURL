@@ -21,7 +21,7 @@ const (
 )
 
 type Event struct {
-	Ts     time.Time `json:"ts"`
+	TS     time.Time `json:"ts"`
 	Action string    `json:"action"`
 	UserID int       `json:"user_id"`
 	URL    string    `json:"url"`
@@ -125,14 +125,15 @@ func (a *Audit) sendToHost(event Event) error {
 		Timeout: 3 * time.Second,
 	}
 
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
+	resp.Body.Close()
 
 	return err
 }
 
 func CreateEvent(userID int, action, URL string) Event {
 	return Event{
-		Ts: time.Now(),
+		TS: time.Now(),
 		Action: action,
 		URL: URL,
 		UserID: userID,
