@@ -15,6 +15,12 @@ import (
 	"github.com/SerzhLimon/ReductionURL/migrations"
 )
 
+var (
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
+)
+
 func main() {
 	cfg, err := config.NewConfig()
 	if err != nil {
@@ -55,6 +61,10 @@ func main() {
 			serverErr <- err
 		}
 	}()
+
+	logrus.Printf("Build version: %s\n", buildVersion)
+	logrus.Printf("Build date: %s\n", buildDate)
+	logrus.Printf("Build commit: %s\n", buildCommit)
 
 	select {
 	case <-quit:
