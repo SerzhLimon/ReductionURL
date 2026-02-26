@@ -1,107 +1,56 @@
 package service
 
-// type MockRepo struct {
-// 	mock.Mock
-// }
+import (
+	"testing"
 
-// func newWrapService() *Service {
-// 	r := &MockRepo{}
-// 	return &Service{
-// 		repo: r,
-// 	}
-// }
+	"github.com/SerzhLimon/ReductionURL/internal/model"
+	"github.com/stretchr/testify/mock"
+)
 
-// func (m *MockRepo) Get(hash string) (string, error) {
-// 	args := m.Called(hash)
-// 	return args.String(0), args.Error(1)
-// }
+// MockRepository - простой мок для репозитория
+type MockRepository struct {
+	mock.Mock
+}
 
-// func (m *MockRepo) Set(url, hash string) error {
-// 	args := m.Called(url, hash)
-// 	return args.Error(0)
-// }
-// func TestServiceSetURL(t *testing.T) {
-// 	tests := []struct {
-// 		name     string
-// 		url      string
-// 		wantHash string
-// 		wantErr  error
-// 		repoIsOn bool
+func (m *MockRepository) Get(hash string) (string, error) {
+	args := m.Called(hash)
+	return args.String(0), args.Error(1)
+}
 
-// 		mockHash string
-// 	}{
-// 		{
-// 			name:     "success set",
-// 			url:      "someUrl",
-// 			wantHash: "78264b7b9514f66e",
-// 			wantErr:  nil,
-// 			repoIsOn: true,
-// 			mockHash: "78264b7b9514f66e",
-// 		},
-// 		{
-// 			name:     "empty upl",
-// 			url:      "",
-// 			wantHash: "",
-// 			wantErr:  fmt.Errorf("incorrect url"),
-// 			repoIsOn: false,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			s := newWrapService()
-// 			mockRepo := s.repo.(*MockRepo)
+// Остальные методы интерфейса (заглушки)
+func (m *MockRepository) Set(url, hash string) (string, error) { return "", nil }
+func (m *MockRepository) Ping() error                          { return nil }
+func (m *MockRepository) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
+	return nil, nil
+}
+func (m *MockRepository) GetArrayURL() ([]model.GetArrayURLResponse, error) { return nil, nil}
+func (m *MockRepository) Delete(hash string) error { return nil }
 
-// 			if tt.repoIsOn {
-// 				mockRepo.On("Set", tt.url, tt.mockHash).Return(nil)
-// 			}
+// BenchmarkGetURL - бенчмарк для метода GetURL
+func BenchmarkGetURL(b *testing.B) {
+	// Создаем мок репозитория
+	mockRepo := new(MockRepository)
 
-// 			gotHash, err := s.SetURL(tt.url)
+	// Создаем сервис с моком
+	srv := &Service{
+		repo: mockRepo,
+	}
 
-// 			assert.Equal(t, tt.wantHash, gotHash)
-// 			assert.Equal(t, tt.wantErr, err)
-// 		})
-// 	}
-// }
+	// Тестовые данные
+	testHash := "a1b2c3d4"
+	expectedURL := "https://example.com"
 
-// func TestServiceGetURL(t *testing.T) {
-// 	tests := []struct {
-// 		name     string
-// 		hash     string
-// 		wantURL  string
-// 		wantErr  error
-// 		repoIsOn bool
+	// Настраиваем мок
+	mockRepo.On("Get", testHash).Return(expectedURL, nil)
 
-// 		mockHash string
-// 	}{
-// 		{
-// 			name:     "success get",
-// 			hash:     "78264b7b9514f66e",
-// 			wantURL:  "someUrl",
-// 			wantErr:  nil,
-// 			repoIsOn: true,
-// 			mockHash: "78264b7b9514f66e",
-// 		},
-// 		{
-// 			name:     "empty upl",
-// 			hash:     "",
-// 			wantURL:  "",
-// 			wantErr:  fmt.Errorf("incorrect id"),
-// 			repoIsOn: false,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			s := newWrapService()
-// 			mockRepo := s.repo.(*MockRepo)
+	// Сбрасываем таймер
+	b.ResetTimer()
 
-// 			if tt.repoIsOn {
-// 				mockRepo.On("Get", tt.mockHash).Return(tt.wantURL, nil)
-// 			}
-
-// 			gotURL, err := s.GetURL(tt.hash)
-
-// 			assert.Equal(t, tt.wantURL, gotURL)
-// 			assert.Equal(t, tt.wantErr, err)
-// 		})
-// 	}
-// }
+	// Запускаем бенчмарк
+	for i := 0; i < b.N; i++ {
+		_, err := srv.GetURL(testHash)
+		if err != nil {
+			b.Fatalf("unexpected error: %v", err)
+		}
+	}
+}

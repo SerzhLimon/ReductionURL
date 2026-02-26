@@ -183,8 +183,8 @@ func (s *FileStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 }
 
 func (s *FileStorage) Delete(hash string) error {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	lo.ForEach(s.s, func(_ URLRecord, i int) {
 		if s.s[i].ShortURL == hash {
