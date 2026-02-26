@@ -23,8 +23,8 @@ func (m *MockRepository) Ping() error                          { return nil }
 func (m *MockRepository) SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error) {
 	return nil, nil
 }
-func (m *MockRepository) GetArrayURL() ([]model.GetArrayURLResponse, error) { return nil, nil}
-func (m *MockRepository) Delete(hash string) error { return nil }
+func (m *MockRepository) GetArrayURL() ([]model.GetArrayURLResponse, error) { return nil, nil }
+func (m *MockRepository) Delete(hash string) error                          { return nil }
 
 // BenchmarkGetURL - бенчмарк для метода GetURL
 func BenchmarkGetURL(b *testing.B) {

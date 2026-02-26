@@ -1,277 +1,277 @@
 package main
 
 import (
-    "bytes"
-    "fmt"
-    "go/ast"
-    "go/format"
-    "go/parser"
-    "go/token"
-    "os"
-    "path/filepath"
-    "strings"
+	"bytes"
+	"fmt"
+	"go/ast"
+	"go/format"
+	"go/parser"
+	"go/token"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 func main() {
-    rootDir := "." // начинаем с корня проекта
-    
-    // 1. Проходим по всем директориям
-    err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
-        if err != nil {
-            return err
-        }
-        
-        // Обрабатываем только директории с Go-файлами
-        if info.IsDir() {
-            processDirectory(path)
-        }
-        return nil
-    })
-    
-    if err != nil {
-        fmt.Fprintf(os.Stderr, "Ошибка: %v\n", err)
-        os.Exit(1)
-    }
+	rootDir := "." // начинаем с корня проекта
+
+	// 1. Проходим по всем директориям
+	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Обрабатываем только директории с Go-файлами
+		if info.IsDir() {
+			processDirectory(path)
+		}
+		return nil
+	})
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Ошибка: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func processDirectory(dir string) {
-    // Читаем все файлы в директории
-    files, err := os.ReadDir(dir)
-    if err != nil {
-        return
-    }
-    
-    var goFiles []string
-    for _, file := range files {
-        if !file.IsDir() && strings.HasSuffix(file.Name(), ".go") && !strings.HasSuffix(file.Name(), ".gen.go") {
-            goFiles = append(goFiles, filepath.Join(dir, file.Name()))
-        }
-    }
-    
-    if len(goFiles) == 0 {
-        return
-    }
-    
-    // Собираем все структуры с комментарием // generate:reset
-    structsWithReset := make(map[string]bool)
-    structFields := make(map[string]map[string]string) // structName -> fieldName -> fieldType
-    
-    for _, filePath := range goFiles {
-        findStructsWithReset(filePath, structsWithReset, structFields)
-    }
-    
-    // Генерируем reset.gen.go если есть структуры для обработки
-    if len(structsWithReset) > 0 {
-        generateResetFile(dir, structsWithReset, structFields)
-    }
+	// Читаем все файлы в директории
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+
+	var goFiles []string
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".go") && !strings.HasSuffix(file.Name(), ".gen.go") {
+			goFiles = append(goFiles, filepath.Join(dir, file.Name()))
+		}
+	}
+
+	if len(goFiles) == 0 {
+		return
+	}
+
+	// Собираем все структуры с комментарием // generate:reset
+	structsWithReset := make(map[string]bool)
+	structFields := make(map[string]map[string]string) // structName -> fieldName -> fieldType
+
+	for _, filePath := range goFiles {
+		findStructsWithReset(filePath, structsWithReset, structFields)
+	}
+
+	// Генерируем reset.gen.go если есть структуры для обработки
+	if len(structsWithReset) > 0 {
+		generateResetFile(dir, structsWithReset, structFields)
+	}
 }
 
 func findStructsWithReset(filePath string, structsWithReset map[string]bool, structFields map[string]map[string]string) {
-    fset := token.NewFileSet()
-    file, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
-    if err != nil {
-        return
-    }
-    
-    // Определяем имя пакета для проверки
-    pkgName := file.Name.Name
-    
-    // Проходим по всем объявлениям в файле
-    for _, decl := range file.Decls {
-        genDecl, ok := decl.(*ast.GenDecl)
-        if !ok || genDecl.Tok != token.TYPE {
-            continue
-        }
-        
-        // Проверяем, есть ли комментарий // generate:reset
-        hasResetComment := false
-        if genDecl.Doc != nil {
-            for _, comment := range genDecl.Doc.List {
-                if strings.TrimSpace(comment.Text) == "// generate:reset" {
-                    hasResetComment = true
-                    break
-                }
-            }
-        }
-        
-        if !hasResetComment {
-            continue
-        }
-        
-        // Обрабатываем каждую спецификацию типа в объявлении
-        for _, spec := range genDecl.Specs {
-            typeSpec, ok := spec.(*ast.TypeSpec)
-            if !ok {
-                continue
-            }
-            
-            // Проверяем, что это структура
-            structType, ok := typeSpec.Type.(*ast.StructType)
-            if !ok {
-                continue
-            }
-            
-            structName := typeSpec.Name.Name
-            fullStructName := pkgName + "." + structName
-            structsWithReset[fullStructName] = true
-            
-            // Собираем поля структуры
-            if structFields[fullStructName] == nil {
-                structFields[fullStructName] = make(map[string]string)
-            }
-            
-            if structType.Fields != nil {
-                for _, field := range structType.Fields.List {
-                    if len(field.Names) > 0 {
-                        fieldName := field.Names[0].Name
-                        fieldType := exprToString(field.Type)
-                        structFields[fullStructName][fieldName] = fieldType
-                    }
-                }
-            }
-        }
-    }
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+	if err != nil {
+		return
+	}
+
+	// Определяем имя пакета для проверки
+	pkgName := file.Name.Name
+
+	// Проходим по всем объявлениям в файле
+	for _, decl := range file.Decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok || genDecl.Tok != token.TYPE {
+			continue
+		}
+
+		// Проверяем, есть ли комментарий // generate:reset
+		hasResetComment := false
+		if genDecl.Doc != nil {
+			for _, comment := range genDecl.Doc.List {
+				if strings.TrimSpace(comment.Text) == "// generate:reset" {
+					hasResetComment = true
+					break
+				}
+			}
+		}
+
+		if !hasResetComment {
+			continue
+		}
+
+		// Обрабатываем каждую спецификацию типа в объявлении
+		for _, spec := range genDecl.Specs {
+			typeSpec, ok := spec.(*ast.TypeSpec)
+			if !ok {
+				continue
+			}
+
+			// Проверяем, что это структура
+			structType, ok := typeSpec.Type.(*ast.StructType)
+			if !ok {
+				continue
+			}
+
+			structName := typeSpec.Name.Name
+			fullStructName := pkgName + "." + structName
+			structsWithReset[fullStructName] = true
+
+			// Собираем поля структуры
+			if structFields[fullStructName] == nil {
+				structFields[fullStructName] = make(map[string]string)
+			}
+
+			if structType.Fields != nil {
+				for _, field := range structType.Fields.List {
+					if len(field.Names) > 0 {
+						fieldName := field.Names[0].Name
+						fieldType := exprToString(field.Type)
+						structFields[fullStructName][fieldName] = fieldType
+					}
+				}
+			}
+		}
+	}
 }
 
 func generateResetFile(dir string, structsWithReset map[string]bool, structFields map[string]map[string]string) {
-    // Определяем имя пакета из первого файла в директории
-    pkgName := getPackageName(dir)
-    if pkgName == "" {
-        return
-    }
-    
-    var buf bytes.Buffer
-    
-    // Пишем заголовок файла
-    buf.WriteString("// Code generated by reset generator. DO NOT EDIT.\n")
-    buf.WriteString("// go run cmd/reset/main.go\n\n")
-    buf.WriteString(fmt.Sprintf("package %s\n\n", pkgName))
-    
-    // Для каждой структуры генерируем метод Reset()
-    for structName := range structsWithReset {
-        // Убираем префикс с именем пакета
-        parts := strings.Split(structName, ".")
-        localStructName := parts[len(parts)-1]
-        
-        buf.WriteString(fmt.Sprintf("func (s *%s) Reset() {\n", localStructName))
-        
-        fields, ok := structFields[structName]
-        if ok {
-            for fieldName, fieldType := range fields {
-                // Генерируем сброс в зависимости от типа
-                switch {
-                case isPrimitive(fieldType):
-                    buf.WriteString(fmt.Sprintf("    s.%s = %s\n", fieldName, zeroValue(fieldType)))
-                    
-                case isSlice(fieldType):
-                    buf.WriteString(fmt.Sprintf("    s.%s = s.%s[:0]\n", fieldName, fieldName))
-                    
-                case isMap(fieldType):
-                    buf.WriteString(fmt.Sprintf("    maps.Clear(s.%s)\n", fieldName))
-                    
-                case isPointer(fieldType):
-                    buf.WriteString(fmt.Sprintf("    if s.%s != nil {\n", fieldName))
-                    buf.WriteString(fmt.Sprintf("        s.%s.Reset()\n", fieldName))
-                    buf.WriteString("    }\n")
-                    
-                default:
-                    if !isPrimitive(fieldType) && !isSlice(fieldType) && !isMap(fieldType) {
-                        buf.WriteString(fmt.Sprintf("    s.%s.Reset()\n", fieldName))
-                    }
-                }
-            }
-        }
-        
-        buf.WriteString("}\n\n")
-    }
-    
-    // Форматируем код
-    formatted, err := format.Source(buf.Bytes())
-    if err != nil {
-        fmt.Printf("Ошибка форматирования в %s: %v\n", dir, err)
-        return
-    }
-    
-    // Записываем в файл
-    outputPath := filepath.Join(dir, "reset.gen.go")
-    err = os.WriteFile(outputPath, formatted, 0644)
-    if err != nil {
-        fmt.Printf("Ошибка записи %s: %v\n", outputPath, err)
-        return
-    }
-    
-    fmt.Printf("Сгенерирован %s\n", outputPath)
+	// Определяем имя пакета из первого файла в директории
+	pkgName := getPackageName(dir)
+	if pkgName == "" {
+		return
+	}
+
+	var buf bytes.Buffer
+
+	// Пишем заголовок файла
+	buf.WriteString("// Code generated by reset generator. DO NOT EDIT.\n")
+	buf.WriteString("// go run cmd/reset/main.go\n\n")
+	buf.WriteString(fmt.Sprintf("package %s\n\n", pkgName))
+
+	// Для каждой структуры генерируем метод Reset()
+	for structName := range structsWithReset {
+		// Убираем префикс с именем пакета
+		parts := strings.Split(structName, ".")
+		localStructName := parts[len(parts)-1]
+
+		buf.WriteString(fmt.Sprintf("func (s *%s) Reset() {\n", localStructName))
+
+		fields, ok := structFields[structName]
+		if ok {
+			for fieldName, fieldType := range fields {
+				// Генерируем сброс в зависимости от типа
+				switch {
+				case isPrimitive(fieldType):
+					buf.WriteString(fmt.Sprintf("    s.%s = %s\n", fieldName, zeroValue(fieldType)))
+
+				case isSlice(fieldType):
+					buf.WriteString(fmt.Sprintf("    s.%s = s.%s[:0]\n", fieldName, fieldName))
+
+				case isMap(fieldType):
+					buf.WriteString(fmt.Sprintf("    maps.Clear(s.%s)\n", fieldName))
+
+				case isPointer(fieldType):
+					buf.WriteString(fmt.Sprintf("    if s.%s != nil {\n", fieldName))
+					buf.WriteString(fmt.Sprintf("        s.%s.Reset()\n", fieldName))
+					buf.WriteString("    }\n")
+
+				default:
+					if !isPrimitive(fieldType) && !isSlice(fieldType) && !isMap(fieldType) {
+						buf.WriteString(fmt.Sprintf("    s.%s.Reset()\n", fieldName))
+					}
+				}
+			}
+		}
+
+		buf.WriteString("}\n\n")
+	}
+
+	// Форматируем код
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		fmt.Printf("Ошибка форматирования в %s: %v\n", dir, err)
+		return
+	}
+
+	// Записываем в файл
+	outputPath := filepath.Join(dir, "reset.gen.go")
+	err = os.WriteFile(outputPath, formatted, 0644)
+	if err != nil {
+		fmt.Printf("Ошибка записи %s: %v\n", outputPath, err)
+		return
+	}
+
+	fmt.Printf("Сгенерирован %s\n", outputPath)
 }
 
 func getPackageName(dir string) string {
-    files, err := os.ReadDir(dir)
-    if err != nil {
-        return ""
-    }
-    
-    for _, file := range files {
-        if !file.IsDir() && strings.HasSuffix(file.Name(), ".go") && !strings.HasSuffix(file.Name(), "_test.go") {
-            fset := token.NewFileSet()
-            f, err := parser.ParseFile(fset, filepath.Join(dir, file.Name()), nil, parser.PackageClauseOnly)
-            if err == nil && f.Name != nil {
-                return f.Name.Name
-            }
-        }
-    }
-    return ""
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return ""
+	}
+
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".go") && !strings.HasSuffix(file.Name(), "_test.go") {
+			fset := token.NewFileSet()
+			f, err := parser.ParseFile(fset, filepath.Join(dir, file.Name()), nil, parser.PackageClauseOnly)
+			if err == nil && f.Name != nil {
+				return f.Name.Name
+			}
+		}
+	}
+	return ""
 }
 
 func exprToString(expr ast.Expr) string {
-    switch t := expr.(type) {
-    case *ast.Ident:
-        return t.Name
-    case *ast.StarExpr:
-        return "*" + exprToString(t.X)
-    case *ast.ArrayType:
-        return "[]" + exprToString(t.Elt)
-    case *ast.MapType:
-        return "map[" + exprToString(t.Key) + "]" + exprToString(t.Value)
-    case *ast.SelectorExpr:
-        return exprToString(t.X) + "." + t.Sel.Name
-    default:
-        return fmt.Sprintf("%T", t)
-    }
+	switch t := expr.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.StarExpr:
+		return "*" + exprToString(t.X)
+	case *ast.ArrayType:
+		return "[]" + exprToString(t.Elt)
+	case *ast.MapType:
+		return "map[" + exprToString(t.Key) + "]" + exprToString(t.Value)
+	case *ast.SelectorExpr:
+		return exprToString(t.X) + "." + t.Sel.Name
+	default:
+		return fmt.Sprintf("%T", t)
+	}
 }
 
 func isPrimitive(typ string) bool {
-    primitives := map[string]bool{
-        "int": true, "int8": true, "int16": true, "int32": true, "int64": true,
-        "uint": true, "uint8": true, "uint16": true, "uint32": true, "uint64": true,
-        "float32": true, "float64": true,
-        "string": true, "bool": true, "byte": true, "rune": true,
-        "uintptr": true,
-    }
-    return primitives[typ]
+	primitives := map[string]bool{
+		"int": true, "int8": true, "int16": true, "int32": true, "int64": true,
+		"uint": true, "uint8": true, "uint16": true, "uint32": true, "uint64": true,
+		"float32": true, "float64": true,
+		"string": true, "bool": true, "byte": true, "rune": true,
+		"uintptr": true,
+	}
+	return primitives[typ]
 }
 
 func zeroValue(typ string) string {
-    switch typ {
-    case "string":
-        return "\"\""
-    case "bool":
-        return "false"
-    case "byte", "rune", "int", "int8", "int16", "int32", "int64",
-         "uint", "uint8", "uint16", "uint32", "uint64", "uintptr",
-         "float32", "float64":
-        return "0"
-    default:
-        return "nil"
-    }
+	switch typ {
+	case "string":
+		return "\"\""
+	case "bool":
+		return "false"
+	case "byte", "rune", "int", "int8", "int16", "int32", "int64",
+		"uint", "uint8", "uint16", "uint32", "uint64", "uintptr",
+		"float32", "float64":
+		return "0"
+	default:
+		return "nil"
+	}
 }
 
 func isSlice(typ string) bool {
-    return strings.HasPrefix(typ, "[]")
+	return strings.HasPrefix(typ, "[]")
 }
 
 func isMap(typ string) bool {
-    return strings.HasPrefix(typ, "map[")
+	return strings.HasPrefix(typ, "map[")
 }
 
 func isPointer(typ string) bool {
-    return strings.HasPrefix(typ, "*")
+	return strings.HasPrefix(typ, "*")
 }
