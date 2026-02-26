@@ -30,8 +30,8 @@ func NewMemStorage(cfg *config.Config) (Repository, error) {
 }
 
 func (s *MemStorage) Get(hash string) (string, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	data, exist := s.memoryCache[hash]
 	if !exist {
