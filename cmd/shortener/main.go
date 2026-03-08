@@ -53,7 +53,7 @@ func main() {
 	go s.RunAudit(ctx)
 
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	serverErr := make(chan error, 1)
 	go func() {
