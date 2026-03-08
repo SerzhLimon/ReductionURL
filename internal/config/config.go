@@ -22,6 +22,7 @@ type Options struct {
 
 	AuditFile string `env:"AUDIT_FILE"`
 	AuditURL  string `env:"AUDIT_URL"`
+	Https     string `env:"ENABLE_HTTPS"`
 }
 
 type Token struct {
@@ -51,6 +52,7 @@ func newOpts() (*Options, error) {
 	var psqlHost = flag.String("d", "", "psql data")
 	var auditFile = flag.String("audit-file", "", "audit file save events")
 	var auditURL = flag.String("audit-url", "", "audit url send events")
+	var https = flag.String("s", "", "run https")
 
 	flag.Parse()
 
@@ -83,6 +85,7 @@ func newOpts() (*Options, error) {
 		opts.BaseURL = "http://" + opts.BaseURL
 	}
 	opts.BaseURL = strings.TrimSuffix(opts.BaseURL, "/")
+	opts.Https = *https
 
 	parseAuditFields(opts, auditFile, auditURL)
 	return opts, nil
@@ -96,6 +99,7 @@ func parseEnv() (*Options, bool) {
 
 	envAiditFile := os.Getenv("AUDIT_FILE")
 	envAiditURL := os.Getenv("AUDIT_URL")
+	envHttps := os.Getenv("ENABLE_HTTPS")
 
 	opts := &Options{}
 	if envStorageFile != "" {
@@ -115,6 +119,9 @@ func parseEnv() (*Options, bool) {
 	}
 	if _, err := url.Parse(envAiditURL); err == nil {
 		opts.AuditURL = envAiditURL
+	}
+	if envHttps != "" {
+		opts.Https = envHttps
 	}
 
 	sucessAll := opts.Addr != "" && opts.BaseURL != "" && opts.DataBaseHost != ""

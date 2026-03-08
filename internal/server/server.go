@@ -71,6 +71,14 @@ func (s *Server) RunAudit(ctx context.Context) {
 
 // Run запускает HTTP сервер.
 func (s *Server) Run() error {
+	if s.cfg.Opts.Https != "" {
+		if _, err := NewHTTPS(); err != nil {
+			logrus.Error(err)
+			return err
+		}
+		logrus.Infof("server HTTPS started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
+		return http.ListenAndServeTLS(s.cfg.Opts.Addr, CertPEM, PrivateKeyPEM,  s.core)
+	}
 	logrus.Infof("server started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
 	return http.ListenAndServe(s.cfg.Opts.Addr, s.core)
 }
