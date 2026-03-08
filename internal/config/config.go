@@ -1,12 +1,15 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Config struct {
@@ -15,14 +18,14 @@ type Config struct {
 }
 
 type Options struct {
-	Addr         string `env:"SERVER_ADDRESS"`
-	BaseURL      string `env:"BASE_URL"`
-	StorageFile  string `env:"FILE_STORAGE_PATH"`
-	DataBaseHost string `env:"DATABASE_DSN"`
+	Addr         string `json:"server_address" env:"SERVER_ADDRESS"`
+	BaseURL      string `json:"base_url" env:"BASE_URL"`
+	StorageFile  string `json:"file_storage_path" env:"FILE_STORAGE_PATH"`
+	DataBaseHost string `json:"database_dsn" env:"DATABASE_DSN"`
 
 	AuditFile string `env:"AUDIT_FILE"`
 	AuditURL  string `env:"AUDIT_URL"`
-	Https     string `env:"ENABLE_HTTPS"`
+	Https     bool   `json:"enable_https" env:"ENABLE_HTTPS"`
 }
 
 type Token struct {
@@ -52,7 +55,10 @@ func newOpts() (*Options, error) {
 	var psqlHost = flag.String("d", "", "psql data")
 	var auditFile = flag.String("audit-file", "", "audit file save events")
 	var auditURL = flag.String("audit-url", "", "audit url send events")
-	var https = flag.String("s", "", "run https")
+	var https = flag.Bool("s", false, "run https")
+	var configJSON *string
+	flag.StringVar(configJSON, "c", "", "config file (short)")
+    flag.StringVar(configJSON, "config", "", "config file (long)")
 
 	flag.Parse()
 
@@ -88,6 +94,11 @@ func newOpts() (*Options, error) {
 	opts.Https = *https
 
 	parseAuditFields(opts, auditFile, auditURL)
+	if cfgFile := getConfigFilePath(configJSON); cfgFile != nil {
+		if err := setConfigFromFile(*cfgFile, opts); err != nil {
+			logrus.Fatal(err)
+		}
+	}
 	return opts, nil
 }
 
@@ -121,7 +132,7 @@ func parseEnv() (*Options, bool) {
 		opts.AuditURL = envAiditURL
 	}
 	if envHttps != "" {
-		opts.Https = envHttps
+		opts.Https = true
 	}
 
 	sucessAll := opts.Addr != "" && opts.BaseURL != "" && opts.DataBaseHost != ""
@@ -137,4 +148,52 @@ func parseAuditFields(opts *Options, auditFilePath, auditURL *string) {
 			opts.AuditURL = *auditURL
 		}
 	}
+}
+
+// getConfigFilePath returns the path to the config file specified by the -c flag or the CONFIG environment variable.
+func getConfigFilePath(configJSON *string) *string {
+	cfgFile := os.Getenv("CONFIG")
+	if cfgFile != "" {
+		return &cfgFile
+	}
+	
+	return configJSON
+}
+
+func setConfigFromFile(path string, opts *Options) error {
+	var optFromFile Options
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	err = json.Unmarshal(data, &optFromFile)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	if flag.Lookup("a") == nil {
+		opts.Addr = optFromFile.Addr
+	}
+
+	if flag.Lookup("b") == nil {
+		opts.BaseURL = optFromFile.Addr
+	}
+
+	if flag.Lookup("f") == nil {
+		opts.StorageFile = optFromFile.StorageFile
+	}
+
+	if flag.Lookup("d") == nil {
+		opts.DataBaseHost = optFromFile.DataBaseHost
+	}
+
+	if flag.Lookup("s") == nil {
+		opts.Https = optFromFile.Https
+	}
+
+	return nil
 }
