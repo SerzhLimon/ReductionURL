@@ -71,7 +71,7 @@ func (s *Server) RunAudit(ctx context.Context) {
 
 // Run запускает HTTP сервер.
 func (s *Server) Run() error {
-	if s.cfg.Opts.Https {
+	if s.cfg.Opts.HTTPS {
 		if _, err := NewHTTPS(); err != nil {
 			logrus.Error(err)
 			return err

@@ -25,7 +25,7 @@ type Options struct {
 
 	AuditFile string `env:"AUDIT_FILE"`
 	AuditURL  string `env:"AUDIT_URL"`
-	Https     bool   `json:"enable_https" env:"ENABLE_HTTPS"`
+	HTTPS     bool   `json:"enable_https" env:"ENABLE_HTTPS"`
 }
 
 type Token struct {
@@ -91,7 +91,7 @@ func newOpts() (*Options, error) {
 		opts.BaseURL = "http://" + opts.BaseURL
 	}
 	opts.BaseURL = strings.TrimSuffix(opts.BaseURL, "/")
-	opts.Https = *https
+	opts.HTTPS = *https
 
 	parseAuditFields(opts, auditFile, auditURL)
 	if cfgFile := getConfigFilePath(configJSON); cfgFile != nil {
@@ -110,7 +110,7 @@ func parseEnv() (*Options, bool) {
 
 	envAiditFile := os.Getenv("AUDIT_FILE")
 	envAiditURL := os.Getenv("AUDIT_URL")
-	envHttps := os.Getenv("ENABLE_HTTPS")
+	envHTTPS := os.Getenv("ENABLE_HTTPS")
 
 	opts := &Options{}
 	if envStorageFile != "" {
@@ -131,8 +131,8 @@ func parseEnv() (*Options, bool) {
 	if _, err := url.Parse(envAiditURL); err == nil {
 		opts.AuditURL = envAiditURL
 	}
-	if envHttps != "" {
-		opts.Https = true
+	if envHTTPS != "" {
+		opts.HTTPS = true
 	}
 
 	sucessAll := opts.Addr != "" && opts.BaseURL != "" && opts.DataBaseHost != ""
@@ -192,7 +192,7 @@ func setConfigFromFile(path string, opts *Options) error {
 	}
 
 	if flag.Lookup("s") == nil {
-		opts.Https = optFromFile.Https
+		opts.HTTPS = optFromFile.HTTPS
 	}
 
 	return nil
