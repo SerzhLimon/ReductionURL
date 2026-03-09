@@ -134,9 +134,12 @@ func (a *Audit) sendToHost(event Event) error {
 	}
 
 	resp, err := client.Do(req)
-	resp.Body.Close()
+	if err != nil {
+    	return fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
 
-	return err
+	return nil
 }
 
 // CreateEvent создает новое событие аудита.
