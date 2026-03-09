@@ -56,9 +56,9 @@ func newOpts() (*Options, error) {
 	var auditFile = flag.String("audit-file", "", "audit file save events")
 	var auditURL = flag.String("audit-url", "", "audit url send events")
 	var https = flag.Bool("s", false, "run https")
-	var configJSON *string
-	flag.StringVar(configJSON, "c", "", "config file (short)")
-    flag.StringVar(configJSON, "config", "", "config file (long)")
+	var configJSON string
+	flag.StringVar(&configJSON, "c", "", "config file (short)")
+    flag.StringVar(&configJSON, "config", "", "config file (long)")
 
 	flag.Parse()
 
@@ -94,9 +94,9 @@ func newOpts() (*Options, error) {
 	opts.HTTPS = *https
 
 	parseAuditFields(opts, auditFile, auditURL)
-	if cfgFile := getConfigFilePath(configJSON); cfgFile != nil {
+	if cfgFile := getConfigFilePath(&configJSON); cfgFile != nil {
 		if err := setConfigFromFile(*cfgFile, opts); err != nil {
-			logrus.Fatal(err)
+			logrus.Warn(err)
 		}
 	}
 	return opts, nil
@@ -180,7 +180,7 @@ func setConfigFromFile(path string, opts *Options) error {
 	}
 
 	if flag.Lookup("b") == nil {
-		opts.BaseURL = optFromFile.Addr
+		opts.BaseURL = optFromFile.BaseURL
 	}
 
 	if flag.Lookup("f") == nil {
