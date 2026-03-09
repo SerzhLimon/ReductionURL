@@ -15,28 +15,24 @@ type DataURL struct {
 
 type MemStorage struct {
 	cfg         *config.Config
-	memoryCache map[string]DataURL
-	mu          sync.RWMutex
+	memoryCache sync.Map
 }
 
 func NewMemStorage(cfg *config.Config) (Repository, error) {
-
 	s := &MemStorage{
 		cfg:         cfg,
-		memoryCache: make(map[string]DataURL),
+		memoryCache: sync.Map{},
 	}
 
 	return s, nil
 }
 
 func (s *MemStorage) Get(hash string) (string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	data, exist := s.memoryCache[hash]
+	actual, exist := s.memoryCache.Load(hash)
 	if !exist {
 		return "", fmt.Errorf("%s not found", hash)
 	}
+	data, _ := actual.(DataURL)
 	if data.IsDeleted {
 		return "", model.ErrDeletedURL
 	}
@@ -44,15 +40,13 @@ func (s *MemStorage) Get(hash string) (string, error) {
 }
 
 func (s *MemStorage) Set(url, hash string) (string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if _, exist := s.memoryCache[hash]; exist {
-		existingShortURL, _ := s.Get(hash)
-		return existingShortURL, model.ErrURLAlreadyExists
+	
+	if data, exist := s.memoryCache.Load(hash); exist {
+		existingShortURL, _  := data.(DataURL)
+		return existingShortURL.OriginalURL, model.ErrURLAlreadyExists
 	}
 
-	s.memoryCache[hash] = DataURL{OriginalURL: url}
+	s.memoryCache.Store(hash, DataURL{OriginalURL: url})
 	return hash, nil
 }
 
@@ -73,13 +67,20 @@ func (s *MemStorage) Ping() error {
 }
 
 func (s *MemStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
 	var res []model.GetArrayURLResponse
-	for key, val := range s.memoryCache {
-		shortURL := s.cfg.Opts.BaseURL + "/" + key
-		res = append(res, model.GetArrayURLResponse{Original: val.OriginalURL, Short: shortURL})
-	}
+	
+	s.memoryCache.Range(func(key, value interface{}) bool {
+		strKey := key.(string)
+		data := value.(DataURL)
+		
+		shortURL := s.cfg.Opts.BaseURL + "/" + strKey
+		res = append(res, model.GetArrayURLResponse{
+			Original: data.OriginalURL, 
+			Short:    shortURL,
+		})
+		
+		return true
+	})
 
 	if len(res) == 0 {
 		return []model.GetArrayURLResponse{}, fmt.Errorf("not found")
@@ -89,9 +90,6 @@ func (s *MemStorage) GetArrayURL() ([]model.GetArrayURLResponse, error) {
 }
 
 func (s *MemStorage) Delete(hash string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	delete(s.memoryCache, hash)
+	s.memoryCache.Delete(hash)
 	return nil
 }
