@@ -72,10 +72,14 @@ func main() {
 	case err := <-serverErr:
 		logrus.WithError(err).Error("Server error occurred")
 	}
+	
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
 
+	if err := s.Shutdown(shutdownCtx); err != nil {
+		logrus.WithError(err).Error("Server shutdown error")
+	}
 	cancel()
-	time.Sleep(500 * time.Millisecond)
 
 	logrus.Info("Shutting down...")
-
 }

@@ -61,6 +61,16 @@ func (s *Server) route() {
 	s.core.Delete("/api/user/urls", s.DeleteArrayURLJson)
 }
 
+// Shutdown останавливает HTTP сервер
+func (s *Server) Shutdown(ctx context.Context) error {
+	httpServer := &http.Server{
+		Addr:    s.cfg.Opts.Addr,
+		Handler: s.core,
+	}
+
+	return httpServer.Shutdown(ctx)
+}
+
 // RunAudit запускает воркер аудита для отправки событий.
 func (s *Server) RunAudit(ctx context.Context) {
 	if s.audit == nil {
