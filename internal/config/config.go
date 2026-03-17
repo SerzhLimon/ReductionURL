@@ -26,6 +26,7 @@ type Options struct {
 	AuditFile string `env:"AUDIT_FILE"`
 	AuditURL  string `env:"AUDIT_URL"`
 	HTTPS     bool   `json:"enable_https" env:"ENABLE_HTTPS"`
+	Subnet    string `json:"trusted_subnet" env:"TRUSTED_SUBNET"`
 }
 
 type Token struct {
@@ -56,9 +57,10 @@ func newOpts() (*Options, error) {
 	var auditFile = flag.String("audit-file", "", "audit file save events")
 	var auditURL = flag.String("audit-url", "", "audit url send events")
 	var https = flag.Bool("s", false, "run https")
+	var subnet = flag.String("t", "", "subnet")
 	var configJSON string
 	flag.StringVar(&configJSON, "c", "", "config file (short)")
-    flag.StringVar(&configJSON, "config", "", "config file (long)")
+	flag.StringVar(&configJSON, "config", "", "config file (long)")
 
 	flag.Parse()
 
@@ -73,6 +75,9 @@ func newOpts() (*Options, error) {
 	}
 	if opts.DataBaseHost == "" {
 		opts.DataBaseHost = *psqlHost
+	}
+	if opts.Subnet == "" {
+		opts.Subnet = *subnet
 	}
 
 	if _, err := url.Parse("https://" + opts.Addr); err != nil {
@@ -111,6 +116,7 @@ func parseEnv() (*Options, bool) {
 	envAiditFile := os.Getenv("AUDIT_FILE")
 	envAiditURL := os.Getenv("AUDIT_URL")
 	envHTTPS := os.Getenv("ENABLE_HTTPS")
+	envSubnet := os.Getenv("TRUSTED_SUBNET")
 
 	opts := &Options{}
 	if envStorageFile != "" {
@@ -134,6 +140,9 @@ func parseEnv() (*Options, bool) {
 	if envHTTPS != "" {
 		opts.HTTPS = true
 	}
+	if envSubnet != "" {
+		opts.Subnet = envSubnet
+	}
 
 	sucessAll := opts.Addr != "" && opts.BaseURL != "" && opts.DataBaseHost != ""
 	return opts, sucessAll
@@ -156,7 +165,7 @@ func getConfigFilePath(configJSON *string) *string {
 	if cfgFile != "" {
 		return &cfgFile
 	}
-	
+
 	return configJSON
 }
 

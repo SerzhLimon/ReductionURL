@@ -28,3 +28,8 @@ type GetArrayURLResponse struct {
 	Short    string `json:"short_url"`
 	Original string `json:"original_url"`
 }
+
+type GetStatsResponse struct {
+	URLs  int `json:"urls"`
+	Users int `json:"users"`
+}

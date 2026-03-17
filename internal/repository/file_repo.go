@@ -194,3 +194,13 @@ func (s *FileStorage) Delete(hash string) error {
 
 	return s.saveToFile()
 }
+
+func (s *FileStorage) GetStats() (model.GetStatsResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	countURLs := lo.Filter(s.s, func(item URLRecord, _ int) bool {
+		return !item.IsDeleted
+	})
+	return model.GetStatsResponse{URLs: len(countURLs)}, nil
+}

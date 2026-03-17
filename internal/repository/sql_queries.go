@@ -21,4 +21,9 @@ const (
 		SET is_deleted = true 
 		WHERE shortURL = $1;
 	`
+	queryGetStats = `
+		SELECT COUNT(shortURL) 
+		FROM reductionurl
+		WHERE is_deleted = false;
+	`
 )

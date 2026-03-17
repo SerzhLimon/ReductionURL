@@ -25,6 +25,9 @@ func (m *MockRepository) SetArrayURL(req []model.SetArrayURLRequest) ([]model.Se
 }
 func (m *MockRepository) GetArrayURL() ([]model.GetArrayURLResponse, error) { return nil, nil }
 func (m *MockRepository) Delete(hash string) error                          { return nil }
+func (m *MockRepository) GetStats() (model.GetStatsResponse, error) {
+	return model.GetStatsResponse{}, nil
+}
 
 // BenchmarkGetURL - бенчмарк для метода GetURL
 func BenchmarkGetURL(b *testing.B) {

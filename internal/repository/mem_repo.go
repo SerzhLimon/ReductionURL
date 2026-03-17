@@ -93,3 +93,15 @@ func (s *MemStorage) Delete(hash string) error {
 	s.memoryCache.Delete(hash)
 	return nil
 }
+
+func (s *MemStorage) GetStats() (model.GetStatsResponse, error) {
+	var countHashURL int
+	s.memoryCache.Range(func(_, value interface{}) bool {
+		data := value.(DataURL)
+		if !data.IsDeleted {
+			countHashURL++
+		}
+		return true
+	})
+	return model.GetStatsResponse{URLs: countHashURL}, nil
+}

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/SerzhLimon/ReductionURL/internal/config"
@@ -19,29 +20,36 @@ type UseCase interface {
 	SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error)
 	GetArrayURL() ([]model.GetArrayURLResponse, error)
 	DeleteArrayURL(hashArray []string)
+	SetUser(userID int)
+	GetStats(subnet string, ip net.IP) (model.GetStatsResponse, error)
 }
 
 type Service struct {
-	repo repo.Repository
+	cache *memCache
+	repo  repo.Repository
 }
 
 func NewService(cfg *config.Config, db *sql.DB) (UseCase, error) {
+	cache := newCache()
 	pgRepo, err := repo.NewPgStorage(cfg, db)
 	if err == nil {
 		return &Service{
-			repo: pgRepo,
+			cache: cache,
+			repo:  pgRepo,
 		}, nil
 	}
 	fileRepo, err := repo.NewFileStorage(cfg)
 	if err == nil {
 		return &Service{
-			repo: fileRepo,
+			cache: cache,
+			repo:  fileRepo,
 		}, nil
 	}
 	memRepo, err := repo.NewMemStorage(cfg)
 	if err == nil {
 		return &Service{
-			repo: memRepo,
+			cache: cache,
+			repo:  memRepo,
 		}, nil
 	}
 	return nil, fmt.Errorf("fail to init repo")
@@ -98,4 +106,28 @@ func (s *Service) DeleteArrayURL(hashArray []string) {
 			}
 		}(hash)
 	}
+}
+
+func (s *Service) SetUser(userID int) {
+	s.cache.SetUser(userID)
+}
+
+func (s *Service) GetStats(subnet string, ip net.IP) (model.GetStatsResponse, error) {
+
+	_, trustedSubnet, err := net.ParseCIDR(subnet)
+	if err != nil {
+		return model.GetStatsResponse{}, err
+	}
+
+	if !trustedSubnet.Contains(ip) {
+		return model.GetStatsResponse{}, model.ErrForbiddenIP
+	}
+
+	resp, err := s.repo.GetStats()
+	if err != nil {
+		return model.GetStatsResponse{}, err
+	}
+
+	resp.Users = s.cache.GetCountUsers()
+	return resp, nil
 }

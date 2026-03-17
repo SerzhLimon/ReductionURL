@@ -145,3 +145,16 @@ func (s *PgStorage) Delete(hash string) error {
 
 	return nil
 }
+
+func (s *PgStorage) GetStats() (model.GetStatsResponse, error) {
+	var countHashURL int
+	err := s.db.QueryRow(queryGetStats).Scan(&countHashURL)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.GetStatsResponse{}, fmt.Errorf("URL not found")
+		}
+
+		return model.GetStatsResponse{}, fmt.Errorf("database error: %w", err)
+	}
+	return model.GetStatsResponse{URLs: countHashURL}, nil
+}

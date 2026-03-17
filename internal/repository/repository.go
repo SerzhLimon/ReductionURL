@@ -9,4 +9,5 @@ type Repository interface {
 	SetArrayURL(req []model.SetArrayURLRequest) ([]model.SetArrayURLResponse, error)
 	GetArrayURL() ([]model.GetArrayURLResponse, error)
 	Delete(hash string) error
+	GetStats() (model.GetStatsResponse, error)
 }

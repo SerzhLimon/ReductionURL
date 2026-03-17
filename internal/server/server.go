@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 
@@ -59,6 +60,7 @@ func (s *Server) route() {
 	s.core.Post("/api/shorten/batch", s.SetArrayURLJson)
 	s.core.Get("/api/user/urls", s.GetArrayURLJson)
 	s.core.Delete("/api/user/urls", s.DeleteArrayURLJson)
+	s.core.Get("/api/internal/stats", s.GetStats)
 }
 
 // Shutdown останавливает HTTP сервер
@@ -87,7 +89,7 @@ func (s *Server) Run() error {
 			return err
 		}
 		logrus.Infof("server HTTPS started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
-		return http.ListenAndServeTLS(s.cfg.Opts.Addr, CertPEM, PrivateKeyPEM,  s.core)
+		return http.ListenAndServeTLS(s.cfg.Opts.Addr, CertPEM, PrivateKeyPEM, s.core)
 	}
 	logrus.Infof("server started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
 	return http.ListenAndServe(s.cfg.Opts.Addr, s.core)
@@ -113,6 +115,9 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
+	userID, _ := getUserID(req)
+	s.uc.SetUser(userID)
+
 	hash, err := s.uc.SetURL(string(body))
 	if err != nil {
 		if errors.Is(err, model.ErrURLAlreadyExists) {
@@ -125,7 +130,6 @@ func (s *Server) SetURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userID, _ := getUserID(req)
 	s.sendEvent(audit.CreateEvent(userID, audit.Shorten, string(body)))
 
 	res.Header().Set("Content-Type", "text/plain")
@@ -194,6 +198,9 @@ func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	userID, _ := getUserID(req)
+	s.uc.SetUser(userID)
+
 	hash, err := s.uc.SetURL(request.URL)
 	if err != nil {
 		if errors.Is(err, model.ErrURLAlreadyExists) {
@@ -221,7 +228,6 @@ func (s *Server) SetURLJson(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userID, _ := getUserID(req)
 	s.sendEvent(audit.CreateEvent(userID, audit.Shorten, string(body)))
 
 	res.Header().Set("Content-Type", "application/json")
@@ -359,4 +365,40 @@ func (s *Server) DeleteArrayURLJson(res http.ResponseWriter, req *http.Request) 
 	s.uc.DeleteArrayURL(hashArray)
 
 	res.WriteHeader(http.StatusAccepted)
+}
+
+func (s *Server) GetStats(res http.ResponseWriter, req *http.Request) {
+	if s.cfg.Opts.Subnet == "" {
+		http.Error(res, model.ErrForbiddenIP.Error(), http.StatusForbidden)
+		return
+	}
+
+	ipstr := req.Header.Get("X-Real-IP")
+
+	ip := net.ParseIP(ipstr)
+	if ip == nil {
+		http.Error(res, "invalid IP", http.StatusBadRequest)
+		return
+	}
+
+	result, err := s.uc.GetStats(s.cfg.Opts.Subnet, ip)
+	if err != nil {
+		if errors.Is(err, model.ErrForbiddenIP) {
+			logrus.Errorln(err)
+			http.Error(res, err.Error(), http.StatusForbidden)
+			return
+		}
+		logrus.Errorln(err)
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response, err := json.Marshal(result)
+	if err != nil {
+		logrus.Errorln(err)
+		http.Error(res, "cannot marshal body", http.StatusBadRequest)
+		return
+	}
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+	res.Write(response)
 }
