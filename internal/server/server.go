@@ -16,16 +16,21 @@ import (
 
 	"github.com/SerzhLimon/ReductionURL/internal/audit"
 	"github.com/SerzhLimon/ReductionURL/internal/config"
+	grpcserver "github.com/SerzhLimon/ReductionURL/internal/gRPC"
 	"github.com/SerzhLimon/ReductionURL/internal/model"
 	uc "github.com/SerzhLimon/ReductionURL/internal/service"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 // Server представляет HTTP сервер для сокращения URL.
 type Server struct {
-	cfg   *config.Config
-	core  *chi.Mux
-	uc    uc.UseCase
-	audit audit.Observer
+	cfg     *config.Config
+	core    *chi.Mux
+	uc      uc.UseCase
+	audit   audit.Observer
+	grpcSrv *grpc.Server // gRPC сервер
+	grpcLis net.Listener // слушатель для gRPC
 }
 
 // NewServer создает и инициализирует новый экземпляр Server.
@@ -38,11 +43,24 @@ func NewServer(cfg *config.Config, db *sql.DB) (*Server, error) {
 	if err != nil {
 		logrus.Warn("audit not init")
 	}
+
+	lis, err := net.Listen("tcp", ":8081")
+	if err != nil {
+		return nil, err
+	}
+
+	grpcSrv := grpc.NewServer()
+	shortenerServer := grpcserver.NewShortenerServer(uc, cfg)
+	grpcserver.RegisterShortenerServiceServer(grpcSrv, shortenerServer)
+	reflection.Register(grpcSrv)
+	
 	server := &Server{
-		cfg:   cfg,
-		core:  chi.NewRouter(),
-		uc:    uc,
-		audit: audit,
+		cfg:     cfg,
+		core:    chi.NewRouter(),
+		uc:      uc,
+		audit:   audit,
+		grpcSrv: grpcSrv,
+		grpcLis: lis,
 	}
 	server.route()
 	return server, nil
@@ -65,11 +83,14 @@ func (s *Server) route() {
 
 // Shutdown останавливает HTTP сервер
 func (s *Server) Shutdown(ctx context.Context) error {
+	// Останавливаем gRPC
+	s.grpcSrv.GracefulStop()
+
+	// Останавливаем HTTP
 	httpServer := &http.Server{
 		Addr:    s.cfg.Opts.Addr,
 		Handler: s.core,
 	}
-
 	return httpServer.Shutdown(ctx)
 }
 
@@ -83,15 +104,24 @@ func (s *Server) RunAudit(ctx context.Context) {
 
 // Run запускает HTTP сервер.
 func (s *Server) Run() error {
+	// Запускаем gRPC в отдельной горутине
+	go func() {
+		logrus.Infof("gRPC server started on %s", s.grpcLis.Addr().String())
+		if err := s.grpcSrv.Serve(s.grpcLis); err != nil {
+			logrus.WithError(err).Error("gRPC server error")
+		}
+	}()
+
+	// Запускаем HTTP
 	if s.cfg.Opts.HTTPS {
 		if _, err := NewHTTPS(); err != nil {
 			logrus.Error(err)
 			return err
 		}
-		logrus.Infof("server HTTPS started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
+		logrus.Infof("HTTP server started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
 		return http.ListenAndServeTLS(s.cfg.Opts.Addr, CertPEM, PrivateKeyPEM, s.core)
 	}
-	logrus.Infof("server started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
+	logrus.Infof("HTTP server started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
 	return http.ListenAndServe(s.cfg.Opts.Addr, s.core)
 }
 
