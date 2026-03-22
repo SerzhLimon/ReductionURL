@@ -25,12 +25,12 @@ import (
 
 // Server представляет HTTP сервер для сокращения URL.
 type Server struct {
-	cfg     *config.Config
-	core    *chi.Mux
-	uc      uc.UseCase
-	audit   audit.Observer
-	grpcSrv *grpc.Server // gRPC сервер
-	grpcLis net.Listener // слушатель для gRPC
+	cfg        *config.Config
+	uc         uc.UseCase
+	audit      audit.Observer
+	grpcSrv    *grpc.Server // gRPC сервер
+	grpcLis    net.Listener // слушатель для gRPC
+	httpServer *http.Server
 }
 
 // NewServer создает и инициализирует новый экземпляр Server.
@@ -53,45 +53,47 @@ func NewServer(cfg *config.Config, db *sql.DB) (*Server, error) {
 	shortenerServer := grpcserver.NewShortenerServer(uc, cfg)
 	grpcserver.RegisterShortenerServiceServer(grpcSrv, shortenerServer)
 	reflection.Register(grpcSrv)
-	
-	server := &Server{
-		cfg:     cfg,
-		core:    chi.NewRouter(),
-		uc:      uc,
-		audit:   audit,
-		grpcSrv: grpcSrv,
-		grpcLis: lis,
+
+	httpServer := &http.Server{
+		Addr:    cfg.Opts.Addr,
+		Handler: chi.NewRouter(),
 	}
+
+	server := &Server{
+		cfg:        cfg,
+		uc:         uc,
+		audit:      audit,
+		grpcSrv:    grpcSrv,
+		grpcLis:    lis,
+		httpServer: httpServer,
+	}
+
 	server.route()
 	return server, nil
 }
 
 func (s *Server) route() {
-	s.core.Use(handLogger)
-	s.core.Use(compress)
-	s.core.Use(cookies)
+	core, _ := s.httpServer.Handler.(*chi.Mux)
+	core.Use(handLogger)
+	core.Use(compress)
+	core.Use(cookies)
 
-	s.core.Post("/", s.SetURL)
-	s.core.Post("/api/shorten", s.SetURLJson)
-	s.core.Get("/{id}", s.GetURL)
-	s.core.Get("/ping", s.Ping)
-	s.core.Post("/api/shorten/batch", s.SetArrayURLJson)
-	s.core.Get("/api/user/urls", s.GetArrayURLJson)
-	s.core.Delete("/api/user/urls", s.DeleteArrayURLJson)
-	s.core.Get("/api/internal/stats", s.GetStats)
+	core.Post("/", s.SetURL)
+	core.Post("/api/shorten", s.SetURLJson)
+	core.Get("/{id}", s.GetURL)
+	core.Get("/ping", s.Ping)
+	core.Post("/api/shorten/batch", s.SetArrayURLJson)
+	core.Get("/api/user/urls", s.GetArrayURLJson)
+	core.Delete("/api/user/urls", s.DeleteArrayURLJson)
+	core.Get("/api/internal/stats", s.GetStats)
 }
 
 // Shutdown останавливает HTTP сервер
 func (s *Server) Shutdown(ctx context.Context) error {
 	// Останавливаем gRPC
 	s.grpcSrv.GracefulStop()
-
 	// Останавливаем HTTP
-	httpServer := &http.Server{
-		Addr:    s.cfg.Opts.Addr,
-		Handler: s.core,
-	}
-	return httpServer.Shutdown(ctx)
+	return s.httpServer.Shutdown(ctx)
 }
 
 // RunAudit запускает воркер аудита для отправки событий.
@@ -119,10 +121,10 @@ func (s *Server) Run() error {
 			return err
 		}
 		logrus.Infof("HTTP server started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
-		return http.ListenAndServeTLS(s.cfg.Opts.Addr, CertPEM, PrivateKeyPEM, s.core)
+		return http.ListenAndServeTLS(s.cfg.Opts.Addr, CertPEM, PrivateKeyPEM, s.httpServer.Handler)
 	}
 	logrus.Infof("HTTP server started with params: host - %s, file - %s", s.cfg.Opts.Addr, s.cfg.Opts.StorageFile)
-	return http.ListenAndServe(s.cfg.Opts.Addr, s.core)
+	return http.ListenAndServe(s.cfg.Opts.Addr, s.httpServer.Handler)
 }
 
 // SetURL обрабатывает POST запрос для создания короткой ссылки из plain text.
